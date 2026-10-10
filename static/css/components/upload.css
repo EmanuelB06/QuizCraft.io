@@ -1,0 +1,118 @@
+/* ============================================================
+   components/upload.css — the new-quiz form
+   ============================================================
+   The numbered step chips, the click/drop upload zone (styled
+   through the visually-hidden input) and the question-type
+   selection cards.
+
+   Depends on: tokens.css
+   ============================================================ */
+
+.qc-step-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--qc-gradient);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.75rem;
+  border-radius: 50rem;
+  box-shadow: 0 6px 12px -6px rgba(var(--qc-primary-rgb), 0.6);
+}
+
+.qc-upload-zone {
+  display: block;
+  text-align: center;
+  cursor: pointer;
+  padding: 2.2rem 1.5rem;
+  border: 1.5px dashed #c9c4f2;
+  border-radius: 1rem;
+  background: #fbfdfe;
+  color: var(--qc-muted);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qc-upload-zone:hover {
+  border-color: var(--qc-primary);
+  background: var(--qc-primary-soft);
+  box-shadow: 0 0 0 4px rgba(var(--qc-primary-rgb), 0.1);
+}
+
+.qc-upload-zone i {
+  display: block;
+  font-size: 2.1rem;
+  color: var(--qc-primary);
+  margin-bottom: 0.45rem;
+}
+
+.qc-upload-zone .strong {
+  display: block;
+  font-weight: 600;
+  color: var(--qc-ink);
+  margin-bottom: 0.2rem;
+}
+
+.qc-upload-zone.qc-upload-chosen {
+  border-style: solid;
+  border-color: var(--qc-primary);
+  background: var(--qc-primary-soft);
+}
+
+.qc-upload-zone.qc-upload-drag {
+  border-style: solid;
+  border-color: var(--qc-primary);
+  background: var(--qc-primary-soft);
+  box-shadow: 0 0 0 6px rgba(var(--qc-primary-rgb), 0.14);
+  transform: translateY(-1px);
+}
+
+#id_document {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.qc-type-card {
+  position: relative;
+  border: 1px solid var(--qc-hairline);
+  border-radius: 0.8rem;
+  background: #fff;
+  padding: 0.85rem 1rem 0.85rem 2.4rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qc-type-card:hover {
+  border-color: var(--qc-primary-focus);
+}
+
+.qc-type-card input {
+  position: absolute;
+  left: 0.95rem;
+  top: 1.05rem;
+}
+
+.qc-type-card:has(input:checked) {
+  border-color: var(--qc-primary);
+  background: var(--qc-primary-soft);
+  box-shadow: 0 0 0 4px rgba(var(--qc-primary-rgb), 0.1);
+}
+
+.qc-toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--qc-hairline);
+  border-radius: 0.8rem;
+}
+
+.qc-toggle-row:has(input:checked) {
+  border-color: var(--qc-primary-focus);
+  background: var(--qc-primary-soft);
+}

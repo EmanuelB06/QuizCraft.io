@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Review {{ quiz.title }} - QuizCraft{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+  <div>
+    <h1 class="h4 fw-bold mb-1">{{ quiz.title }}</h1>
+    <p class="text-body-secondary small mb-0">
+      {{ questions|length }} questions &middot; {{ quiz.get_difficulty_display }} &middot;
+      from <span title="{{ quiz.document.original_filename }}">{{ quiz.document.original_filename }}</span>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-primary" href="{% url 'quiz_take' quiz.pk %}">
+      <i class="bi bi-play-fill" aria-hidden="true"></i> Take this quiz
+    </a>
+    <div class="btn-group">
+      <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" type="button">
+        <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Export PDF
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{% url 'quiz_export' quiz.pk %}">Quiz only</a></li>
+        <li><a class="dropdown-item" href="{% url 'quiz_export' quiz.pk %}?answers=1">With answer key</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="alert d-flex justify-content-between align-items-center gap-3 mb-4 qc-review-hint">
+  <span class="small mb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-lightbulb" aria-hidden="true"></i>
+    Review every question and fix anything the AI got wrong. Changes save when you click Save.
+  </span>
+  <div class="d-flex gap-2 flex-shrink-0">
+    <a class="btn btn-sm btn-outline-primary"
+       href="{% url 'quiz_edit' quiz.pk %}?answers={% if answers_visible %}0{% else %}1{% endif %}"
+       data-answer-key-toggle role="button" aria-controls="question-form"
+       aria-expanded="{% if answers_visible %}true{% else %}false{% endif %}">
+      <i class="bi {% if answers_visible %}bi-eye-slash{% else %}bi-eye{% endif %} me-1" aria-hidden="true"></i>
+      <span data-answer-key-label>{% if answers_visible %}Hide answers{% else %}Show answers{% endif %}</span>
+    </a>
+    <a class="btn btn-sm btn-outline-primary" href="{% url 'dashboard' %}">Done</a>
+  </div>
+</div>
+
+{% if form.non_field_errors %}
+  <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+{% endif %}
+
+<form method="post" novalidate id="question-form" {% if not answers_visible %}class="qc-key-hidden"{% endif %}>
+  {% csrf_token %}
+
+  {% for question in questions %}
+    {% include "partials/question_edit_card.html" with prefix="q"|add:question.pk.hex counter=forloop.counter %}
+  {% endfor %}
+
+  <h2 class="h6 qc-eyebrow text-body-secondary mt-4 mb-2">Add your own</h2>
+  <p class="small text-body-secondary">
+    Optional. Fill in a prompt and tick the correct option; blank ones are ignored when you save.
+  </p>
+  {% include "partials/question_new_card.html" with slot=1 %}
+  {% include "partials/question_new_card.html" with slot=2 %}
+
+  <div class="d-flex gap-2 mb-5">
+    <button class="btn btn-primary" type="submit">Save changes</button>
+    <a class="btn btn-outline-secondary" href="{% url 'quiz_edit' quiz.pk %}">Discard</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/quiz_edit.js' %}"></script>
+{% endblock %}

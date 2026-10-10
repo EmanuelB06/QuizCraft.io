@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load quiz_tags %}
+
+{% block title %}Results - {{ quiz.title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-4">
+          <div>
+            <h1 class="h4 fw-bold mb-1">{{ quiz.title }}</h1>
+            <p class="text-body-secondary small mb-0">
+              Submitted {{ attempt.submitted_at|date:"M j, Y \a\t g:i a" }}
+            </p>
+          </div>
+
+          <div class="d-flex align-items-center gap-4">
+            <div class="qc-gauge
+              {% if attempt.percentage >= 80 %}qc-gauge--good
+              {% elif attempt.percentage >= 50 %}qc-gauge--mid
+              {% else %}qc-gauge--low{% endif %}"
+              style="--p: {{ attempt.percentage }};">
+              <div class="qc-gauge-inner">
+                <div>
+                  <div class="qc-gauge-value">{{ attempt.percentage }}%</div>
+                  <div class="small text-body-secondary">
+                    {{ attempt.correct_count }} of {{ attempt.response_set.count }} correct
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="text-body-secondary small">
+              <div class="fw-semibold text-body" style="white-space: nowrap;">
+                {{ attempt.score }} of {{ attempt.max_score }} pts
+              </div>
+              <div class="qc-eyebrow mt-1" style="color: var(--qc-muted);">final score</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="h6 qc-eyebrow text-body-secondary mb-3">Review</h2>
+
+    {% for response in attempt.response_set.all %}
+      <div class="card border-0 shadow-sm mb-3 qc-question-card">
+        <div class="card-body p-4">
+          <div class="d-flex gap-2 mb-3">
+            <span class="qc-num">{{ forloop.counter }}</span>
+            <div class="flex-grow-1">
+              <p class="mb-2 fw-semibold">{{ response.question.prompt }}</p>
+              {% if response.is_correct %}
+                <span class="badge text-bg-success">Correct</span>
+              {% else %}
+                <span class="badge text-bg-danger">Incorrect</span>
+                {% if response.points_earned > 0 %}
+                  <span class="badge text-bg-warning text-dark">Partial credit</span>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+
+          <dl class="row mb-0">
+            <dt class="col-sm-3 text-body-secondary fw-normal">Your answer</dt>
+            <dd class="col-sm-9 {% if not response.is_correct and response.points_earned == 0 %}text-danger{% endif %}">
+              {{ response|display_answer }}
+            </dd>
+            <dt class="col-sm-3 text-body-secondary fw-normal">Correct answer</dt>
+            <dd class="col-sm-9 text-success fw-semibold">
+              {{ response.question.correct_choice_texts|join:", " }}
+            </dd>
+          </dl>
+
+          {% if response.question.explanation %}
+            <div class="qc-explanation mt-3">
+              <strong>Why:</strong> {{ response.question.explanation }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+
+    <div class="d-flex gap-2 mb-5">
+      <a class="btn btn-primary" href="{% url 'quiz_take' quiz.pk %}">Try again</a>
+      <a class="btn btn-outline-secondary" href="{% url 'quiz_edit' quiz.pk %}">Edit questions</a>
+      <a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">Back to dashboard</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

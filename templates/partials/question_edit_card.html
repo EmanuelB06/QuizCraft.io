@@ -1,0 +1,89 @@
+{% comment %}
+One editable question card. Expects `question`, `prefix`, `counter`, `types`.
+Every field name and id below is posted back by services/editing, so they must
+not change.
+{% endcomment %}
+<div class="card border-0 shadow-sm mb-3 qc-question-card" data-question-card>
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+      <div class="d-flex align-items-center gap-2 flex-grow-1">
+        <span class="qc-num" aria-hidden="true">{{ counter }}</span>
+        <label class="form-label fw-semibold mb-0" for="{{ prefix }}_prompt">
+          Question {{ counter }}
+        </label>
+      </div>
+      <div class="form-check" data-delete-toggle>
+        <input class="form-check-input qc-delete-check" type="checkbox"
+               name="{{ prefix }}_delete" id="{{ prefix }}_delete"
+               title="Remove this question">
+        <label class="visually-hidden" for="{{ prefix }}_delete">Remove question {{ counter }}</label>
+      </div>
+    </div>
+
+    <textarea name="{{ prefix }}_prompt" id="{{ prefix }}_prompt" rows="2"
+              class="form-control mb-3" required>{{ question.prompt }}</textarea>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <label class="form-label small text-body-secondary" for="{{ prefix }}_type">Type</label>
+        <select class="form-select form-select-sm" name="{{ prefix }}_type" id="{{ prefix }}_type">
+          {% for value, label in types.choices %}
+            <option value="{{ value }}" {% if value == question.question_type %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-body-secondary" for="{{ prefix }}_points">Points</label>
+        <input type="number" class="form-control form-control-sm" min="1" max="100"
+               name="{{ prefix }}_points" id="{{ prefix }}_points" value="{{ question.points }}">
+      </div>
+    </div>
+
+    {% if question.is_choice_based %}
+      <label class="form-label small text-body-secondary mb-2">Options</label>
+      <div class="row g-2" data-choices>
+        {% for choice in question.choices %}
+          <div class="col-md-6" data-choice-row>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">{{ forloop.counter }}</span>
+              <input type="text" class="form-control" name="{{ prefix }}_choice_{{ forloop.counter0 }}"
+                     value="{{ choice }}" aria-label="Option {{ forloop.counter }}">
+              <div class="input-group-text">
+                <input class="form-check-input mt-0" type="checkbox" name="{{ prefix }}_correct"
+                       value="{{ forloop.counter0 }}" id="{{ prefix }}_correct_{{ forloop.counter0 }}"
+                       title="Mark correct" data-answer-key
+                       {% if forloop.counter0 in question.correct_choices %}checked{% endif %}>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="form-text mt-1">Tick the box at the right of each correct option.</div>
+    {% else %}
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label class="form-label small text-body-secondary" for="{{ prefix }}_answer">Correct answer</label>
+          <input type="text" class="form-control form-control-sm" name="{{ prefix }}_answer"
+                 id="{{ prefix }}_answer" data-answer-key
+                 value="{% if question.acceptable_answers %}{{ question.acceptable_answers.0 }}{% endif %}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small text-body-secondary" for="{{ prefix }}_alternatives">Also accept</label>
+          <input type="text" class="form-control form-control-sm" name="{{ prefix }}_alternatives"
+                 id="{{ prefix }}_alternatives" data-answer-key
+                 placeholder="Comma separated alternatives">
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="mt-3">
+      <label class="form-label small text-body-secondary" for="{{ prefix }}_explanation">Explanation</label>
+      <textarea name="{{ prefix }}_explanation" id="{{ prefix }}_explanation" rows="2"
+                class="form-control" data-answer-key>{{ question.explanation }}</textarea>
+    </div>
+
+    <div class="alert alert-danger mt-3 mb-0 d-none" data-deleted-note>
+      <span class="small">This question will be removed when you save.</span>
+    </div>
+  </div>
+</div>

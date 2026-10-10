@@ -1,0 +1,13 @@
+{% comment %}Several answers out of several. Expects `prefix` and `question`.{% endcomment %}
+{% with view=question.answer_view %}
+  <div class="d-grid gap-2">
+    {% for option in view.options %}
+      <label class="qc-option" for="{{ prefix }}_{{ option.position }}">
+        <input class="form-check-input mt-0" type="checkbox" name="{{ prefix }}"
+               id="{{ prefix }}_{{ option.position }}" value="{{ option.position }}">
+        <span>{{ option.text }}</span>
+      </label>
+    {% endfor %}
+  </div>
+  <div class="form-text mt-2">Tick every option that applies.</div>
+{% endwith %}

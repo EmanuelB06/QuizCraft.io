@@ -1,0 +1,161 @@
+/* ============================================================
+   layout.css — the application shell
+   ============================================================
+   The persistent chrome that wraps every page: the top navbar,
+   the account menu and the generic alert/card/dropdown shapes
+   the shell relies on.
+
+   Depends on: tokens.css, base.css
+   ============================================================ */
+
+.site-nav {
+  background: linear-gradient(92deg, #042f2e 0%, #0f766e 55%, #0891b2 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 24px -18px rgba(4, 47, 46, 0.6);
+}
+
+.navbar .btn {
+  border-radius: 50rem;
+}
+
+/* On the dark teal navbar the auth buttons invert: the primary CTA
+   becomes a solid white button and the outline one goes white-on-
+   translucent so both read against the gradient. */
+.site-nav .btn-primary {
+  background-image: none;
+  box-shadow: none;
+  --bs-btn-bg: #fff;
+  --bs-btn-border-color: #fff;
+  --bs-btn-color: var(--qc-primary-dark);
+  --bs-btn-hover-bg: #ccfbf1;
+  --bs-btn-hover-border-color: #ccfbf1;
+  --bs-btn-hover-color: var(--qc-primary-dark);
+  --bs-btn-active-bg: #99f6e4;
+  --bs-btn-active-border-color: #99f6e4;
+  --bs-btn-active-color: var(--qc-primary-dark);
+}
+
+.site-nav .btn-primary:hover {
+  box-shadow: 0 6px 16px -8px rgba(4, 47, 46, 0.5);
+}
+
+.site-nav .btn-outline-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-border-color: rgba(255, 255, 255, 0.75);
+  --bs-btn-hover-bg: rgba(255, 255, 255, 0.14);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-border-color: rgba(255, 255, 255, 0.75);
+  --bs-btn-active-bg: rgba(255, 255, 255, 0.22);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-border-color: #fff;
+}
+
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+
+.site-brand:hover {
+  color: #fff;
+}
+
+.site-brand-logo {
+  height: 2rem;
+  width: auto;
+  border-radius: 0.35rem;
+  background: #fff;
+  padding: 2px;
+  box-shadow: 0 2px 8px -2px rgba(4, 47, 46, 0.5);
+  transition: transform 0.15s ease;
+}
+
+.site-brand:hover .site-brand-logo {
+  transform: scale(1.04);
+}
+
+.nav-link-pill {
+  border-radius: 50rem;
+  padding: 0.4rem 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-link-pill:hover,
+.nav-link-pill.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.site-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  border-radius: 50rem;
+  color: #fff;
+  transition: transform 0.15s ease;
+}
+
+.site-account:hover {
+  transform: translateY(-1px);
+}
+
+.site-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--qc-primary-dark);
+  font-size: 0.85rem;
+  font-weight: 800;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25), 0 6px 14px -6px rgba(4, 47, 46, 0.5);
+}
+
+.dropdown-menu {
+  min-width: 14rem;
+}
+
+.navbar-toggler {
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.55rem;
+}
+
+.navbar-toggler:focus {
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.35);
+}
+
+.site-nav .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2030%2030'%3e%3cpath%20stroke='rgba(255,255,255,0.85)'%20stroke-linecap='round'%20stroke-miterlimit='10'%20stroke-width='2'%20d='M4%207h22M4%2015h22M4%2023h22'/%3e%3c/svg%3e");
+}
+
+@media (max-width: 991.98px) {
+  .site-nav .navbar-collapse {
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    margin-top: 0.5rem;
+  }
+}
+
+.alert {
+  border-radius: 0.8rem;
+  box-shadow: var(--qc-shadow-sm);
+}
+
+/* Cards get a rounder, friendlier corner everywhere. */
+.card {
+  border-radius: 1rem;
+}
+
+.dropdown-menu {
+  border-radius: 0.8rem;
+  box-shadow: var(--qc-shadow);
+}

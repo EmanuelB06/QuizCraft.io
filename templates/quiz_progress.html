@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Generating {{ quiz.title }} - QuizCraft{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm text-center qc-progress-card" id="progress-card"
+         data-status-url="{{ status_url }}">
+      <div class="card-body p-5">
+
+        <div id="spinner-block">
+          <div class="spinner-border text-primary qc-spinner mb-3" role="status">
+            <span class="visually-hidden">Generating</span>
+          </div>
+          <h1 class="h4 fw-bold mb-2">Reading your document</h1>
+          <p class="text-body-secondary mb-1">{{ quiz.document.original_filename }}</p>
+          <p class="small text-body-secondary mb-4" id="status-text">Working out what to ask about...</p>
+
+          <div class="progress mx-auto qc-progress" style="max-width: 24rem;" role="progressbar">
+            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                 id="progress-bar" style="width: 0%"></div>
+          </div>
+          <p class="small text-body-secondary mt-2 mb-0" id="progress-label"></p>
+        </div>
+
+        <div id="done-block" class="d-none">
+          <div class="qc-done-ring">
+            <i class="bi bi-check2" aria-hidden="true"></i>
+          </div>
+          <h1 class="h4 fw-bold mb-2">Your quiz is ready</h1>
+          <p class="text-body-secondary mb-4">Review the questions before you hand it out.</p>
+          <a class="btn btn-primary btn-lg" href="#" id="review-link">Review questions</a>
+        </div>
+
+        <div id="error-block" class="d-none">
+          <div class="alert alert-danger text-start">
+            <h2 class="h6 alert-heading">Generation failed</h2>
+            <p class="mb-0" id="error-text"></p>
+          </div>
+          <a class="btn btn-outline-secondary" href="{% url 'upload' %}">Try another file</a>
+        </div>
+
+      </div>
+    </div>
+
+    <p class="text-center small text-body-secondary mt-3">
+      <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+      This page updates automatically. Long documents can take a minute or two.
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/quiz_progress.js' %}"></script>
+{% endblock %}

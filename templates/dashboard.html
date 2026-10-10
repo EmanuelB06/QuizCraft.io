@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}My quizzes - QuizCraft{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">My quizzes</h1>
+    <p class="text-body-secondary small mb-0">{{ stats.total }} quiz{{ stats.total|pluralize }} generated</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'upload' %}">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i> New quiz
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 qc-stat-card"><div class="card-body">
+      <div class="qc-stat-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></div>
+      <div class="qc-stat">{{ stats.ready }}</div>
+      <div class="small text-body-secondary">Quizzes ready</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 qc-stat-card"><div class="card-body">
+      <div class="qc-stat-icon"><i class="bi bi-list-check" aria-hidden="true"></i></div>
+      <div class="qc-stat">{{ stats.questions }}</div>
+      <div class="small text-body-secondary">Questions created</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 qc-stat-card"><div class="card-body">
+      <div class="qc-stat-icon"><i class="bi bi-journal-check" aria-hidden="true"></i></div>
+      <div class="qc-stat">{{ stats.attempts }}</div>
+      <div class="small text-body-secondary">Quizzes taken</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 qc-stat-card"><div class="card-body">
+      <div class="qc-stat-icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></div>
+      <div class="qc-stat">{% if stats.average is not None %}{{ stats.average }}%{% else %}&mdash;{% endif %}</div>
+      <div class="small text-body-secondary">Average score</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="mb-3">
+  <div class="qc-segmented" role="group" aria-label="Filter by status">
+    <a class="btn btn-sm {% if not selected_status %}active{% endif %}"
+       href="{% url 'dashboard' %}">All</a>
+    {% for value, label in statuses %}
+      <a class="btn btn-sm {% if selected_status == value %}active{% endif %}"
+         href="?status={{ value }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if quizzes %}
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 qc-table">
+        <thead>
+          <tr>
+            <th scope="col">Quiz</th>
+            <th scope="col">Source</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="text-center">Questions</th>
+            <th scope="col">Created</th>
+            <th scope="col" class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for quiz in quizzes %}
+            <tr>
+              <td class="fw-semibold">{{ quiz.title }}</td>
+              <td class="small text-body-secondary text-truncate" style="max-width: 16rem;">
+                {{ quiz.document.original_filename }}
+              </td>
+              <td>
+                {% if quiz.status == 'ready' %}
+                  <span class="badge qc-badge-success">Ready</span>
+                {% elif quiz.status == 'failed' %}
+                  <span class="badge qc-badge-danger">Failed</span>
+                {% else %}
+                  <span class="badge qc-badge-warn">{{ quiz.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td class="text-center">{{ quiz.total_questions|default:'-' }}</td>
+              <td class="small text-body-secondary">{{ quiz.created_at|date:"M j, Y" }}</td>
+              <td class="text-end text-nowrap">
+                {% if quiz.is_ready %}
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'quiz_edit' quiz.pk %}">Edit</a>
+                  <a class="btn btn-sm btn-primary" href="{% url 'quiz_take' quiz.pk %}">Take</a>
+                {% else %}
+                  {% if quiz.status == 'failed' %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'quiz_progress' quiz.pk %}">Retry</a>
+                  {% else %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'quiz_progress' quiz.pk %}">Status</a>
+                  {% endif %}
+                {% endif %}
+                <form method="post" action="{% url 'quiz_delete' quiz.pk %}" class="d-inline"
+                  onsubmit="return confirm('Delete this quiz and its source file?');">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+      <div class="qc-stat-icon mx-auto" style="width: 3.5rem; height: 3.5rem; font-size: 1.5rem;">
+        <i class="bi bi-inbox" aria-hidden="true"></i>
+      </div>
+      <h2 class="h5">No quizzes yet</h2>
+      <p class="text-body-secondary">Upload a document and QuizCraft will write the questions for you.</p>
+      <a class="btn btn-primary" href="{% url 'upload' %}">Create your first quiz</a>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,107 @@
+/* ============================================================
+   components/dashboard.css — "My quizzes" listing
+   ============================================================
+   Stat cards, the segmented filter, status badges and the quiz
+   table.
+
+   Depends on: tokens.css
+   ============================================================ */
+
+.qc-stat {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--qc-ink);
+}
+
+.qc-stat-icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.8rem;
+  background: var(--qc-primary-soft);
+  color: var(--qc-primary);
+  font-size: 1.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.qc-stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qc-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--qc-shadow-sm) !important;
+}
+
+.qc-segmented {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  background: var(--qc-primary-soft);
+  border-radius: 50rem;
+}
+
+.qc-segmented .btn {
+  border: none;
+  border-radius: 50rem;
+  background: transparent;
+  color: var(--qc-muted);
+  font-weight: 600;
+  box-shadow: none;
+  padding: 0.4rem 0.9rem;
+}
+
+.qc-segmented .btn:hover {
+  color: var(--qc-primary);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.qc-segmented .btn.active {
+  background: #fff;
+  color: var(--qc-primary);
+  box-shadow: 0 1px 4px rgba(25, 21, 49, 0.15);
+}
+
+/* Soft pill status badges on the dashboard. */
+.badge {
+  border-radius: 50rem;
+  font-weight: 600;
+  padding: 0.4em 0.7em;
+}
+
+.qc-badge-success {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.qc-badge-danger {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.qc-badge-warn {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.qc-table thead th {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--qc-muted);
+  background: #eef2f6;
+  border-bottom: 1px solid var(--qc-hairline);
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
+.qc-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.qc-table tbody tr:hover {
+  --bs-table-hover-bg: var(--qc-primary-soft);
+}

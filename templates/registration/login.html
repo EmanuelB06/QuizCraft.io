@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Log in - QuizCraft{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9 col-xl-8">
+    <div class="card border-0 qc-auth-card overflow-hidden">
+      <div class="row g-0">
+        <div class="col-lg-5 d-none d-lg-block">
+          {% include "partials/auth_panel.html" %}
+        </div>
+
+        <div class="col-lg-7">
+          <div class="card-body p-4 p-lg-5">
+            <h1 class="h4 mb-1">Log in</h1>
+            <p class="text-body-secondary small mb-4">Welcome back.</p>
+
+            <form method="post" novalidate>
+              {% csrf_token %}
+
+              {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2 small" role="alert">
+                  {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                <div class="input-group">
+                  <span class="input-group-text qc-input-icon">
+                    <i class="bi bi-person" aria-hidden="true"></i>
+                  </span>
+                  {{ form.username }}
+                </div>
+                {% for error in form.username.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+                <div class="input-group">
+                  <span class="input-group-text qc-input-icon">
+                    <i class="bi bi-key" aria-hidden="true"></i>
+                  </span>
+                  {{ form.password }}
+                  <button class="input-group-text qc-reveal" type="button"
+                          data-reveal="password" aria-controls="{{ form.password.id_for_label }}"
+                          aria-pressed="false" aria-label="Show password">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
+                  </button>
+                </div>
+                {% for error in form.password.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+              </div>
+
+              <input type="hidden" name="next" value="{{ next }}">
+              <button class="btn btn-primary w-100" type="submit">Log in</button>
+            </form>
+
+            <p class="small text-body-secondary text-center mt-3 mb-0">
+              No account? <a href="{% url 'signup' %}">Sign up</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/auth.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}New quiz - QuizCraft{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h1 class="h3 fw-bold mb-1">Create a quiz</h1>
+    <p class="text-body-secondary mb-4">Upload your material and choose how the questions should look.</p>
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-4">
+          <span class="qc-step-chip mb-3">1 &middot; Source material</span>
+
+          {% for error in form.document.errors %}
+            <div class="alert alert-danger py-2">{{ error }}</div>
+          {% endfor %}
+
+          <label class="qc-upload-zone" for="id_document" role="button" tabindex="0"
+                 aria-label="Choose your document">
+            <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+            <span class="strong" data-upload-name aria-live="polite">Click to choose your document</span>
+            <span class="small">PDF, Word (.docx), PowerPoint (.pptx), plain text or Markdown. Up to {{ MAX_UPLOAD_MB }} MB.</span>
+          </label>
+          <input type="file" name="document" id="id_document"
+                 accept=".pdf,.docx,.pptx,.txt,.md,.text" class="form-control" required>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-4">
+          <span class="qc-step-chip mb-3">2 &middot; Quiz settings</span>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="id_title">Title <span class="text-body-secondary fw-normal small">(optional)</span></label>
+              <input type="text" name="title" id="id_title" class="form-control"
+                     value="{{ form.title.value|default:'' }}" maxlength="200"
+                     placeholder="Defaults to the file name">
+              <div class="form-text">{{ form.title.help_text }}</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold" for="id_question_count">Questions</label>
+              <input type="number" name="question_count" id="id_question_count" class="form-control"
+                     min="3" max="40" value="{{ form.question_count.value|default:10 }}" required>
+              <div class="form-text">{{ form.question_count.help_text }}</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold" for="{{ form.difficulty.id_for_label }}">Difficulty</label>
+              <select name="difficulty" id="{{ form.difficulty.id_for_label }}" class="form-select" required>
+                {% for value, label in form.difficulty.field.choices %}
+                  <option value="{{ value }}" {% if form.difficulty.value == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-4">
+          <span class="qc-step-chip mb-3">3 &middot; Question types</span>
+
+          {% if form.question_types.errors %}
+            <div class="alert alert-danger py-2">{{ form.question_types.errors }}</div>
+          {% endif %}
+
+          <div class="row g-2">
+            {% for checkbox in form.question_types %}
+              <div class="col-md-6">
+                <label class="qc-type-card w-100" for="{{ checkbox.id_for_label }}">
+                  {{ checkbox.tag }}
+                  <span class="d-block fw-semibold">{{ checkbox.choice_label }}</span>
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="qc-toggle-row mt-3">
+            <div class="form-check mt-0">
+              <input class="form-check-input" type="checkbox" name="partial_credit" id="id_partial_credit"
+                     {% if form.partial_credit.value %}checked{% endif %}>
+              <label class="form-check-label" for="id_partial_credit">
+                Award partial credit on multiple-answer questions
+              </label>
+            </div>
+            <div class="form-text mt-0 ms-0">Select two of three correct answers and earn two thirds of the points.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-lg" type="submit">
+          <i class="bi bi-stars" aria-hidden="true"></i> Generate quiz
+        </button>
+        <a class="btn btn-outline-secondary btn-lg" href="{% url 'dashboard' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/upload.js' %}"></script>
+{% endblock %}

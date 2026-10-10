@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Take {{ quiz.title }} - QuizCraft{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+      <div>
+        <h1 class="h4 fw-bold mb-1">{{ quiz.title }}</h1>
+        <p class="text-body-secondary small mb-0">
+          {{ questions|length }} questions &middot; {{ max_score }} points &middot;
+          {{ quiz.get_difficulty_display }}
+        </p>
+      </div>
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'quiz_edit' quiz.pk %}">Back to review</a>
+    </div>
+
+    <form method="post" id="take-form">
+      {% csrf_token %}
+
+      {% for question in questions %}
+        {% with prefix="q"|add:question.pk.hex %}
+          <div class="card border-0 shadow-sm mb-3 qc-question-card">
+            <div class="card-body p-4">
+              <div class="d-flex gap-2 mb-3">
+                <span class="qc-num">{{ forloop.counter }}</span>
+                <div class="flex-grow-1">
+                  <p class="mb-1 fw-semibold">{{ question.prompt }}</p>
+                  <span class="badge text-bg-light border">{{ question.type_label }}</span>
+                  <span class="badge text-bg-light border">{{ question.points }} pt{{ question.points|pluralize }}</span>
+                </div>
+              </div>
+
+              {% comment %}The question type picks its own answer controls.{% endcomment %}
+              {% include question.handler.input_template with prefix=prefix question=question %}
+            </div>
+          </div>
+        {% endwith %}
+      {% endfor %}
+
+      <div class="d-flex gap-2 mb-5">
+        <button class="btn btn-primary btn-lg" type="submit">
+          <i class="bi bi-check2" aria-hidden="true"></i> Submit answers
+        </button>
+        <a class="btn btn-outline-secondary btn-lg" href="{% url 'quiz_edit' quiz.pk %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

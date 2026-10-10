@@ -1,0 +1,166 @@
+/* ============================================================
+   components/landing.css — the marketing / landing page
+   ============================================================
+   Hero, feature tiles, capability cards, the "how it works"
+   timeline and the FAQ. Nothing else on the site uses these
+   classes, which is why they live in their own file.
+
+   Depends on: tokens.css
+   ============================================================ */
+
+.qc-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(46rem 22rem at 85% -30%, rgba(6, 182, 212, 0.22), transparent 62%),
+    radial-gradient(40rem 20rem at 0% 130%, rgba(13, 148, 136, 0.2), transparent 62%),
+    linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+  border: 1px solid rgba(var(--qc-primary-rgb), 0.14);
+  border-radius: 1.4rem;
+  box-shadow: var(--qc-shadow);
+}
+
+.qc-text-gradient {
+  background: var(--qc-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.qc-eyebrow {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.qc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(var(--qc-primary-rgb), 0.18);
+  border-radius: 50rem;
+  color: var(--qc-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.35rem 1rem;
+  box-shadow: var(--qc-shadow-sm);
+}
+
+.qc-badge-logo {
+  height: 1.4rem;
+  width: auto;
+  border-radius: 0.3rem;
+  background: #fff;
+  padding: 2px;
+}
+
+.qc-trust {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 1.5rem;
+}
+
+.qc-trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.qc-section-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* The rail is drawn once and each badge sits on top of it, so it
+   works at every breakpoint without nth-child arithmetic. This
+   class has to go on the .row itself: --bs-gutter-x is defined
+   there, not on :root, and .row carries a negative inline margin,
+   so the first column's content box is half a gutter in from the
+   row's own left edge. */
+.qc-timeline {
+  position: relative;
+}
+
+.qc-timeline::before {
+  content: "";
+  position: absolute;
+  top: 1.35rem;
+  bottom: 1.35rem;
+  width: 2px;
+  left: calc(var(--bs-gutter-x) / 2 + 1.35rem);
+  background: linear-gradient(180deg, var(--qc-primary-focus), var(--qc-primary-soft));
+}
+
+.qc-step-num {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2.7rem;
+  height: 2.7rem;
+  margin-bottom: 0.9rem;
+  border-radius: 50%;
+  background: var(--qc-gradient);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 0 0 0.35rem rgba(var(--qc-primary-rgb), 0.12),
+    0 8px 16px -8px rgba(var(--qc-primary-rgb), 0.6);
+}
+
+.qc-step-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.qc-icon-tile {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: 0.9rem;
+  border-radius: 0.8rem;
+  background: var(--qc-primary-soft);
+  color: var(--qc-primary);
+  font-size: 1.25rem;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.qc-cap-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.qc-cap-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(var(--qc-primary-rgb), 0.25) !important;
+  box-shadow: var(--qc-shadow) !important;
+}
+
+.qc-cap-card:hover .qc-icon-tile {
+  background: var(--qc-gradient);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.qc-chip {
+  display: inline-block;
+  margin: 0.25rem 0.2rem 0 0;
+  padding: 0.18rem 0.65rem;
+  border-radius: 50rem;
+  background: var(--qc-primary-soft);
+  color: var(--qc-primary-emphasis);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.qc-faq {
+  background: #fff;
+  border: 1px solid var(--qc-hairline);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: var(--qc-shadow-sm);
+}

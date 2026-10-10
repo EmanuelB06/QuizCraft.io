@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}QuizCraft - Turn any document into a quiz{% endblock %}
+
+{% block content %}
+<section class="qc-hero p-4 p-md-5 mb-5 text-center">
+  <span class="qc-badge mb-3">
+    <i class="bi bi-stars" aria-hidden="true"></i>
+    Automated quiz maker
+  </span>
+
+  <h1 class="display-4 fw-bold mb-3">Turn any document into a<br class="d-none d-sm-block">
+    <span class="qc-text-gradient">ready-to-use quiz</span></h1>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <p class="lead text-body-secondary mb-4">
+        Upload a PDF, Word document, slide deck or text file. QuizCraft reads it,
+        picks out the
+        important ideas, and writes the questions and the answer key for you. Review
+        and edit everything before you hand it out.
+      </p>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap justify-content-center">
+    {% if user.is_authenticated %}
+      <a class="btn btn-primary btn-lg" href="{% url 'upload' %}">Create a quiz</a>
+      <a class="btn btn-outline-secondary btn-lg" href="{% url 'dashboard' %}">My quizzes</a>
+    {% else %}
+      <a class="btn btn-primary btn-lg" href="{% url 'signup' %}">Get started free</a>
+      <a class="btn btn-outline-secondary btn-lg" href="{% url 'login' %}">Log in</a>
+    {% endif %}
+  </div>
+
+  <p class="qc-trust small text-body-secondary mt-4 mb-0">
+    <span class="qc-trust-item">
+      <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+      PDF, DOCX, PPTX, TXT and Markdown
+    </span>
+    <span class="qc-trust-item">
+      <i class="bi bi-layers" aria-hidden="true"></i>
+      Up to {{ MAX_UPLOAD_MB }} MB per file
+    </span>
+    <span class="qc-trust-item">
+      <i class="bi bi-check2" aria-hidden="true"></i>
+      No credit card required
+    </span>
+  </p>
+</section>
+
+<section class="mb-5">
+  <div class="text-center mb-4">
+    <p class="qc-eyebrow text-primary mb-2">How it works</p>
+    <h2 class="qc-section-title">Four steps, start to finish</h2>
+  </div>
+
+  <div class="row g-4 qc-timeline">
+    {% for title, body in steps %}
+      <div class="col-sm-6 col-lg-3">
+        <div class="qc-step">
+          <span class="qc-step-num">{{ forloop.counter }}</span>
+          <h3 class="qc-step-title">{{ title }}</h3>
+          <p class="small text-body-secondary mb-0">{{ body }}</p>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="mb-5">
+  <div class="text-center mb-4">
+    <p class="qc-eyebrow text-primary mb-2">What you get</p>
+    <h2 class="qc-section-title">Everything a quiz needs, in one place</h2>
+  </div>
+
+  <div class="row g-3">
+    {% for icon, title, body, chips in capabilities %}
+      <div class="col-sm-6 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm qc-cap-card">
+          <div class="card-body p-4">
+            <div class="qc-icon-tile">
+              <i class="bi bi-{{ icon }}" aria-hidden="true"></i>
+            </div>
+            <h3 class="h6 fw-semibold">{{ title }}</h3>
+            <p class="small text-body-secondary mb-2">{{ body }}</p>
+            {% for chip in chips %}
+              <span class="qc-chip">{{ chip }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="mb-4">
+  <div class="text-center mb-4">
+    <p class="qc-eyebrow text-primary mb-2">Questions</p>
+    <h2 class="qc-section-title">The things people ask first</h2>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-9">
+      <div class="accordion accordion-flush qc-faq" id="faq">
+        {% for question, answer in faq %}
+          <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-heading-{{ forloop.counter0 }}">
+              <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#faq-body-{{ forloop.counter0 }}"
+                      aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                      aria-controls="faq-body-{{ forloop.counter0 }}">{{ question }}</button>
+            </h3>
+            <div id="faq-body-{{ forloop.counter0 }}"
+                 class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                 aria-labelledby="faq-heading-{{ forloop.counter0 }}"
+                 data-bs-parent="#faq">
+              <div class="accordion-body small text-body-secondary">{{ answer }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

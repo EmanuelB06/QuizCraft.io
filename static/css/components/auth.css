@@ -1,0 +1,90 @@
+/* ============================================================
+   components/auth.css — login / signup
+   ============================================================
+   The split auth card: a coloured marketing panel beside the
+   form, plus the input-group icon/reveal ends and the password
+   help block.
+
+   Depends on: tokens.css, components/landing.css (.qc-badge)
+   ============================================================ */
+
+.qc-auth-card {
+  box-shadow: var(--qc-shadow) !important;
+}
+
+.qc-auth-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem 0 0 1rem;
+  background:
+    radial-gradient(22rem 22rem at 110% -10%, rgba(6, 182, 212, 0.45), transparent 62%),
+    radial-gradient(20rem 20rem at -10% 110%, rgba(255, 255, 255, 0.12), transparent 60%),
+    linear-gradient(160deg, #042f2e 0%, #0f766e 60%, #0891b2 130%);
+  color: #fff;
+}
+
+.qc-auth-panel .qc-badge {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  box-shadow: none;
+}
+
+.qc-auth-panel h2 {
+  color: #fff;
+}
+
+.qc-auth-panel .text-body-secondary {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.qc-auth-points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+}
+
+.qc-auth-points li:last-child {
+  margin-bottom: 0;
+}
+
+.qc-auth-points i {
+  color: #b9b2ff;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+/* The icon and reveal ends of an input group have to be white,
+   not the grey --bs-tertiary-bg, or they read as a different
+   control to the input itself. */
+.qc-input-icon,
+.qc-reveal {
+  background-color: #fff;
+  color: var(--qc-primary);
+}
+
+.qc-reveal {
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+/* Tinting the group ends when the input between them is invalid
+   needs :has(). Where it is unsupported the input still goes red
+   on its own, which is enough to read the form. */
+.input-group:has(.is-invalid) .qc-input-icon,
+.input-group:has(.is-invalid) .qc-reveal {
+  border-color: var(--bs-form-invalid-color);
+}
+
+/* The password validators arrive as a <ul>, so it needs its own
+   spacing. */
+.qc-help ul {
+  padding-left: 1.1rem;
+  margin-bottom: 0;
+}
+
+.qc-help li {
+  margin-bottom: 0.15rem;
+}

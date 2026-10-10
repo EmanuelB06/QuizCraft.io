@@ -1,0 +1,34 @@
+{% comment %}
+Blank slot for a hand-written multiple choice question.
+Expects `slot` (1 or 2). Field names are prefixed `new{slot}_`.
+{% endcomment %}
+<div class="card border-0 shadow-sm mb-3 qc-question-card" data-question-card>
+  <div class="card-body p-4">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="qc-num" aria-hidden="true">{{ slot }}</span>
+      <label class="form-label fw-semibold mb-0" for="new{{ slot }}_prompt">
+        New question {{ slot }}
+      </label>
+    </div>
+    <textarea name="new{{ slot }}_prompt" id="new{{ slot }}_prompt" rows="2"
+              class="form-control mb-3" placeholder="Type the question"></textarea>
+    <label class="form-label small text-body-secondary mb-2">
+      Options <span class="fw-normal">(tick the correct one)</span>
+    </label>
+    <div class="row g-2">
+      {% for index in "0123"|make_list %}
+        <div class="col-md-6">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text">{{ forloop.counter }}</span>
+            <input type="text" class="form-control" name="new{{ slot }}_choice_{{ index }}"
+                   id="new{{ slot }}_choice_{{ index }}" aria-label="Option {{ forloop.counter }}">
+            <div class="input-group-text">
+              <input class="form-check-input mt-0" type="checkbox" name="new{{ slot }}_correct"
+                     value="{{ index }}" id="new{{ slot }}_correct_{{ index }}">
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

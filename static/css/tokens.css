@@ -1,0 +1,70 @@
+/* ============================================================
+   tokens.css — the single source of truth
+   ============================================================
+   Every other stylesheet in this folder depends on the custom
+   properties declared here and nothing else. That dependency
+   direction is the point: components never hardcode a brand
+   colour, they reference a token, so re-theming is a one-file
+   change (see tokens: Swapping the brand ramp).
+
+   Loaded first, by app.css.
+   ============================================================ */
+
+:root {
+  /* Brand ramp (ocean teal → cyan). */
+  --qc-primary: #0d9488;
+  --qc-primary-rgb: 13, 148, 136;
+  --qc-primary-light: #14b8a6;
+  --qc-primary-light-rgb: 20, 184, 166;
+  --qc-primary-dark: #0f766e;
+  --qc-primary-dark-rgb: 15, 118, 110;
+  --qc-primary-soft: #d9f4ee;
+  --qc-primary-focus: #5eead4;
+  --qc-primary-emphasis: #134e4a;
+
+  --qc-accent: #06b6d4;
+  --qc-accent-rgb: 6, 182, 212;
+
+  /* The standard CTA treatment: a diagonal teal→cyan wash. */
+  --qc-gradient: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%);
+
+  --qc-ink: #0f172a;
+  --qc-muted: #475569;
+  --qc-hairline: rgba(15, 23, 42, 0.08);
+
+  --qc-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 2px 6px -2px rgba(15, 23, 42, 0.06);
+  --qc-shadow: 0 10px 30px -16px rgba(15, 23, 42, 0.22), 0 4px 10px -6px rgba(15, 23, 42, 0.08);
+  --qc-shadow-lg: 0 24px 48px -24px rgba(15, 23, 42, 0.32), 0 8px 20px -10px rgba(15, 23, 42, 0.12);
+
+  /* The brand teal, mapped onto Bootstrap. This is what makes
+     text-primary, bg-primary, border-primary, link-primary and
+     plain <a> links teal. */
+  --bs-primary: var(--qc-primary);
+  --bs-primary-rgb: var(--qc-primary-rgb);
+  --bs-primary-bg-subtle: var(--qc-primary-soft);
+  --bs-primary-text-emphasis: var(--qc-primary-emphasis);
+  --bs-primary-border-subtle: var(--qc-primary-focus);
+  --bs-link-color: var(--qc-primary);
+  --bs-link-color-rgb: var(--qc-primary-rgb);
+  --bs-link-hover-color: var(--qc-primary-dark);
+  --bs-link-hover-color-rgb: var(--qc-primary-dark-rgb);
+  --bs-focus-ring-color: rgba(var(--qc-primary-rgb), 0.25);
+
+  /* Type, colour and surface. app.css loads after the CDN, so
+     these win over Bootstrap's matching :root declarations. */
+  --bs-body-font-family: "Manrope", "Segoe UI", ui-sans-serif, system-ui,
+    -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --bs-body-color: #1e293b;
+  --bs-body-bg: #f6f9fb;
+  --bs-border-radius: 0.75rem;
+  --bs-border-radius-lg: 1rem;
+
+  /* Softer, layered shadows for every `shadow-sm` / `shadow` card. */
+  --bs-box-shadow-sm: var(--qc-shadow-sm);
+  --bs-box-shadow: var(--qc-shadow);
+  --bs-box-shadow-lg: var(--qc-shadow-lg);
+
+  --qc-gauge-good: #22c55e;
+  --qc-gauge-mid: #f59e0b;
+  --qc-gauge-low: #ef4444;
+}

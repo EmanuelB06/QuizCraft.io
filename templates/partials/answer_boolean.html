@@ -1,0 +1,13 @@
+{% comment %}A fixed pair of options. Expects `prefix` and `question`.{% endcomment %}
+{% with view=question.answer_view %}
+  <div class="d-flex flex-sm-row flex-column gap-2">
+    {% for option in view.options %}
+      <label class="qc-option flex-grow-1" for="{{ prefix }}_{{ option.position }}">
+        <input class="form-check-input mt-0" type="radio" name="{{ prefix }}"
+               id="{{ prefix }}_{{ option.position }}" value="{{ option.text|lower }}"
+               required>
+        <span>{{ option.text }}</span>
+      </label>
+    {% endfor %}
+  </div>
+{% endwith %}

@@ -1,0 +1,10 @@
+{% comment %}A typed answer. Expects `prefix` and `question`.{% endcomment %}
+{% with view=question.answer_view %}
+  {% if question.handler.multiline %}
+    <textarea class="form-control" name="{{ prefix }}" id="{{ prefix }}"
+              rows="2" placeholder="{{ view.placeholder }}" required></textarea>
+  {% else %}
+    <input type="text" class="form-control" name="{{ prefix }}" id="{{ prefix }}"
+           placeholder="{{ view.placeholder }}" autocomplete="off" required>
+  {% endif %}
+{% endwith %}

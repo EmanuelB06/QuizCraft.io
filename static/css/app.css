@@ -1,0 +1,25 @@
+﻿/* ============================================================
+   app.css — the composition root
+   ============================================================
+   This file owns no rules of its own. It is the single
+   <link rel="stylesheet"> the base template loads, and its only
+   job is to declare the load order of the modules around it.
+
+   The order below is the cascade: tokens first, so every module
+   can resolve a variable, then the shell/global bridges, then
+   the page components, then the utilities that must be able to
+   override anything.
+
+   Swapping the brand ramp: edit tokens.css only. Swapping one
+   page's look: edit that component file only.
+   ============================================================ */
+
+@import url("tokens.css");
+@import url("base.css");
+@import url("layout.css");
+@import url("components/landing.css");
+@import url("components/dashboard.css");
+@import url("components/upload.css");
+@import url("components/quiz.css");
+@import url("components/auth.css");
+@import url("utilities.css");

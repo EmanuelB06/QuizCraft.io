@@ -1,0 +1,31 @@
+/* ============================================================
+   utilities.css — cross-cutting concerns
+   ============================================================
+   Rules that are not tied to one component: reduced-motion and
+   print. Loaded last so they can win the cascade.
+
+   Depends on: tokens.css
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .qc-upload-zone.qc-upload-drag {
+    transform: none;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    background-image: none;
+  }
+}

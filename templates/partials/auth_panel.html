@@ -1,0 +1,32 @@
+{% comment %}
+Shared left-hand panel for the login and signup pages. Hidden below `lg` by the
+including column, so this only ever renders alongside a form.
+{% endcomment %}
+{% load static %}
+<div class="qc-auth-panel d-flex flex-column justify-content-center h-100 p-4 p-lg-5">
+  <span class="qc-badge align-self-start mb-4">
+    <img class="qc-badge-logo" src="{% static 'img/logo-nav.png' %}" alt="QuizCraft logo">
+    QuizCraft
+  </span>
+
+  <h2 class="h3 fw-bold mb-3">Turn any document into a ready-to-use quiz</h2>
+  <p class="text-body-secondary mb-4">
+    Upload a PDF, Word document, slide deck or text file, and QuizCraft writes the
+    questions and the answer key for you.
+  </p>
+
+  <ul class="list-unstyled qc-auth-points mb-0">
+    <li>
+      <i class="bi bi-check2-circle" aria-hidden="true"></i>
+      Every question format the app can grade
+    </li>
+    <li>
+      <i class="bi bi-check2-circle" aria-hidden="true"></i>
+      Reword or delete anything before you hand it out
+    </li>
+    <li>
+      <i class="bi bi-check2-circle" aria-hidden="true"></i>
+      Take it online, or export a printable PDF
+    </li>
+  </ul>
+</div>
