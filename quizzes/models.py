@@ -92,12 +92,21 @@ class Quiz(models.Model):
 
     @property
     def questions(self):
-        # Question.Meta.ordering already sorts by `order`.
+        # A hydrated instance (Firestore) carries its questions in a cache;
+        # otherwise fall through to the relation, which Meta.ordering sorts.
+        cached = getattr(self, "_questions_cache", None)
+        if cached is not None:
+            return cached
         return self.question_set.all()
 
     @property
     def is_ready(self):
-        return self.status == self.Status.READY and self.question_set.exists()
+        if self.status != self.Status.READY:
+            return False
+        cached = getattr(self, "_questions_cache", None)
+        if cached is not None:
+            return bool(cached)
+        return self.question_set.exists()
 
     @property
     def percentage(self):
@@ -183,7 +192,24 @@ class Attempt(models.Model):
         return int(round(self.score / self.max_score * 100)) if self.max_score else 0
 
     @property
+    def responses(self):
+        cached = getattr(self, "_responses_cache", None)
+        if cached is not None:
+            return cached
+        return self.response_set.all()
+
+    @property
+    def response_count(self):
+        cached = getattr(self, "_responses_cache", None)
+        if cached is not None:
+            return len(cached)
+        return self.response_set.count()
+
+    @property
     def correct_count(self):
+        cached = getattr(self, "_responses_cache", None)
+        if cached is not None:
+            return sum(1 for response in cached if response.is_correct)
         return self.response_set.filter(is_correct=True).count()
 
 

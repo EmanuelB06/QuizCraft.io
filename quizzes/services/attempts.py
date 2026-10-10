@@ -5,8 +5,9 @@ HTTP concern. The view supplies a callable that knows how to read the submitted
 form, and everything else happens here.
 """
 
-from ..models import Attempt, Response
+from ..models import Response
 from .grading import grade
+from .repository import get_repository
 
 
 def extract_submission(post, question, key):
@@ -26,9 +27,10 @@ def extract_submission(post, question, key):
 
 def score_attempt(quiz, user, post, questions):
     """Persist an Attempt and its Responses for a submitted quiz."""
+    repo = get_repository()
     partial_credit = bool(getattr(quiz, "partial_credit", False))
-    attempt = Attempt.objects.create(
-        quiz=quiz, user=user, max_score=sum(q.points for q in questions)
+    attempt = repo.create_attempt(
+        quiz, user, max_score=sum(q.points for q in questions)
     )
 
     responses = []
@@ -37,7 +39,6 @@ def score_attempt(quiz, user, post, questions):
         is_correct, points = grade(question, submission, partial_credit)
         responses.append(
             Response(
-                attempt=attempt,
                 question=question,
                 user_answer=submission,
                 is_correct=is_correct,
@@ -45,7 +46,6 @@ def score_attempt(quiz, user, post, questions):
             )
         )
 
-    Response.objects.bulk_create(responses)
-    attempt.score = int(sum(r.points_earned for r in responses))
-    attempt.save(update_fields=["score"])
+    repo.save_responses(attempt, responses)
+    repo.update_attempt(attempt, score=int(sum(r.points_earned for r in responses)))
     return attempt

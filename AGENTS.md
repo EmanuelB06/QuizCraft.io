@@ -16,7 +16,7 @@ Always use the venv interpreter; the global `python` has no Django installed.
 ```
 
 No linter, formatter, type checker, or CI is configured. `manage.py check` is the
-only other gate. Full suite is 171 tests; keep it green.
+only other gate. Full suite is 213 tests; keep it green.
 
 If you pipe a test run through `Select-String`/`grep`, the `Ran N tests` and
 `OK`/`FAILED` summary gets lost and it looks like the run hung. Redirect to a file
@@ -301,6 +301,73 @@ orphaned files from past runs. Don't be surprised by them, don't commit them, an
 don't assume a file in `media/` corresponds to a live row. If you add a test that
 uploads, consider cleaning up after it.
 
+## Firestore is the connected data store
+
+`settings.DATA_STORE` selects the business-data backend, and `.env` sets it to
+`firestore` for the live project (`quizcraft-da152`, creds in `.env`, file
+gitignored). Leave it empty/`sqlite` to keep everything on the ORM. Django's own
+tables (users, sessions, admin, CSRF) stay on SQLite either way -- only
+documents/quizzes/questions/attempts/responses move.
+
+Read/write goes through one seam, `quizzes/services/repository.py`:
+
+- `get_repository()` picks by `settings.DATA_STORE`. `""`/`sqlite` returns
+  `OrmRepository` (the original queries); `firestore` returns
+  `FirestoreRepository`, which fails loudly (`FirestoreUnavailable`) if Firebase
+  is not configured, so a misconfigured swap never silently keeps writing to
+  SQLite.
+- Both implementations return **hydrated Django model instances** (pk set,
+  relations attached, `_questions_cache`/`_responses_cache` populated) so
+  templates, the edit form and the question-type handlers work unchanged.
+  `Quiz.questions`/`is_ready` and `Attempt.responses`/`response_count`/
+  `correct_count` read those caches first and only fall back to the ORM
+  relation when no cache is present.
+- Every business call site in `services/` and `views/` routes through the
+  repository; nothing outside `services/store.py` imports `google.cloud` or
+  `firebase_admin`.
+
+`quizcraft/firebase.py` owns every Admin SDK import (lazy, inside functions) and
+is offline-safe: `is_configured()`, `credential_path()`, `firestore_client()`
+(None when unconfigured), `app()`, `reset()`. `manage.py firebase_status`
+reports readiness without touching the network.
+
+`quizzes/services/store.py` defines the Firestore record shapes
+(`document_record`/`quiz_record`/`question_record`/`attempt_record`/
+`response_record`) and `FirestoreStore` (client injected). Layout is
+`users/{uid}/documents|quizzes|attempts`, plus
+`users/{uid}/quizzes/{quiz_id}/questions/{question_id}` and
+`users/{uid}/attempts/{attempt_id}/responses/{question_id}`. Quiz and Question
+reuse their SQLite UUIDs; `SourceDocument`, `Attempt` and `Response` are
+autoincrement in SQLite, so Firestore mints UUIDs for them (a response is keyed
+by `question_id`). `points_earned` is stored as a string and parsed back to
+`Decimal`; the raw upload stays on local disk and the record only carries the
+path.
+
+**One-off data move:** `manage.py migrate_to_firestore [--dry-run] [--user ID]`
+copies the SQLite business rows into Firestore. It derives deterministic uuid5
+ids for the integer-pk tables, so it is idempotent (re-running overwrites) and a
+quiz's `document_id` is rewritten to the new document id.
+
+Tests: `tests/test_repository.py` pins the seam over a **fake Firestore injected
+as the client** (plus an end-to-end view flow and the generation pipeline);
+`tests/test_store.py` pins the store shapes; `tests/test_migrate_command.py`
+pins the migration; `tests/test_firebase.py` guards the "no-op until configured"
+contract. All run offline -- no network, no credentials.
+
+**The suite never touches Firestore.** `quizcraft/settings.py` sets
+`TESTING = "test" in sys.argv` and forces `DATA_STORE = ""` while it is true, so
+a developer `.env` of `DATA_STORE=firestore` does not make tests build a real
+client. Tests that exercise Firestore inject a fake or use `override_settings`.
+
+Two gotchas:
+
+- The Admin SDK `app()`/`firestore_client()` are `lru_cache`d, so a test that
+  configures Firebase and one that does not cannot share a process unless
+  `firebase.reset()` runs in `setUp`. `FirebaseConfigTests` does this.
+- Because `.env` now carries real credentials, "unconfigured" tests must force
+  it with `override_settings(FIREBASE_CREDENTIAL_PATH="", FIREBASE_PROJECT_ID="")`
+  — the default is configured, the opposite of what it used to be.
+
 ## Layout
 
 ```
@@ -310,11 +377,13 @@ quizzes/
                     generation (chunking, validation, persistence, provider
                     injection), grading (thin facade over the registry),
                     attempts (score a submission), editing (persist an edit),
-                    export (PDF).
+                    export (PDF), repository (Orm/Firestore seam), store
+                    (Firestore record shapes + client).
   forms/            upload.py, question_edit.py. Validation only -- these do not
                     write to the database; services/editing does.
   views/            pages.py, creation.py, review.py. Thin: ownership checks,
                     messages, redirects. `__init__.py` re-exports the view names.
+  management/       commands: firebase_status, migrate_to_firestore.
 ```
 
 `templates/` is **not** under `quizzes/`. It is the project-level template dir

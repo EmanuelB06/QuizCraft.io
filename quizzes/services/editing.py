@@ -10,9 +10,8 @@ refusing *after* deleting would leave the re-rendered edit page unable to name
 its own fields.
 """
 
-from django.db import transaction
-
-from ..models import Question, QuestionType
+from ..models import QuestionType
+from .repository import get_repository
 
 
 class NoQuestionsLeft(ValueError):
@@ -25,20 +24,21 @@ def apply_question_edits(quiz, form) -> int:
     Raises NoQuestionsLeft if nothing would remain; nothing is written in that
     case.
     """
-    with transaction.atomic():
+    repo = get_repository()
+    with repo.transaction():
         updates, deletions, additions = _plan(form)
         if not updates and not additions:
             raise NoQuestionsLeft("A quiz needs at least one question.")
 
         for question in updates:
-            question.save()
+            repo.save_question(question)
         for question in deletions:
-            question.delete()
-        _create(quiz, additions)
+            repo.delete_question(question)
+        _create(repo, quiz, additions)
 
-        total = quiz.question_set.count()
+        total = repo.count_questions(quiz)
         quiz.question_count = total
-        quiz.save(update_fields=["question_count", "updated_at"])
+        repo.save_quiz(quiz)
     return total
 
 
@@ -66,15 +66,15 @@ def _plan(form):
     return updates, deletions, list(form.non_empty_new_slots())
 
 
-def _create(quiz, additions) -> None:
+def _create(repo, quiz, additions) -> None:
     """Turn the hand-written slots into questions, skipping unusable ones."""
     for values in additions:
         if len(values["choices"]) < 2:
             # Not enough options to be a multiple-choice question.
             continue
-        Question.objects.create(
-            quiz=quiz,
-            order=quiz.question_set.count() + 1,
+        repo.create_question(
+            quiz,
+            order=repo.count_questions(quiz) + 1,
             question_type=QuestionType.MCQ_SINGLE,
             prompt=values["prompt"],
             choices=values["choices"],

@@ -9,7 +9,7 @@ urlpatterns = [
     path("<uuid:quiz_id>/edit/", views.quiz_edit, name="quiz_edit"),
     path("<uuid:quiz_id>/take/", views.quiz_take, name="quiz_take"),
     path(
-        "<uuid:quiz_id>/results/<int:attempt_id>/",
+        "<uuid:quiz_id>/results/<str:attempt_id>/",
         views.quiz_results,
         name="quiz_results",
     ),

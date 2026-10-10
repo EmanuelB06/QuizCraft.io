@@ -3,17 +3,18 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404, JsonResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from ..forms.upload import QuizUploadForm
-from ..models import Quiz, SourceDocument
+from ..models import Quiz
 from ..question_types import labels as type_labels
 from ..services.extraction import ExtractionError, extract_text
 from ..services.generation import start_background_generation
+from ..services.repository import get_repository
 
 
 @login_required
@@ -46,35 +47,30 @@ def _prepare_quiz(user, data):
 
     Raises ExtractionError if the file cannot be read.
     """
-    document = _store_document(user, data["document"])
+    repo = get_repository()
+    upload = data["document"]
+    document = repo.create_document(
+        user, upload, upload.name, upload.size
+    )
     try:
         text, pages = extract_text(document.file.path, document.original_filename)
     except Exception:
         # Do not keep an orphan file behind when extraction fails.
         document.file.delete(save=False)
-        document.delete()
+        repo.delete_document(document)
         raise
 
-    document.extracted_text = text
-    document.char_count = len(text)
-    document.page_count = pages
-    document.save(update_fields=["extracted_text", "char_count", "page_count"])
+    repo.save_document_extraction(document, text, len(text), pages)
 
-    return Quiz.objects.create(
-        user=user,
-        document=document,
+    return repo.create_quiz(
+        user,
+        document,
         title=_default_title(document, data.get("title")),
         question_count=data["question_count"],
         difficulty=data["difficulty"],
         question_types=data["question_types"],
         partial_credit=data.get("partial_credit", False),
         status=Quiz.Status.PENDING,
-    )
-
-
-def _store_document(user, upload):
-    return SourceDocument.objects.create(
-        user=user, file=upload, original_filename=upload.name, file_size=upload.size
     )
 
 
@@ -89,9 +85,7 @@ def _default_title(document, given) -> str:
 @login_required
 def quiz_progress(request, quiz_id):
     """Page that polls the status endpoint while generation runs."""
-    quiz = get_object_or_404(
-        Quiz.objects.select_related("document"), pk=quiz_id, user=request.user
-    )
+    quiz = _owned_quiz(request, quiz_id)
     if quiz.status == Quiz.Status.READY:
         return redirect("quiz_edit", quiz_id=quiz.pk)
     return render(
@@ -104,7 +98,7 @@ def quiz_progress(request, quiz_id):
 @login_required
 def quiz_status(request, quiz_id):
     """JSON endpoint polled by the progress page."""
-    quiz = get_object_or_404(Quiz, pk=quiz_id, user=request.user)
+    quiz = _owned_quiz(request, quiz_id)
     ready = quiz.status == Quiz.Status.READY
     return JsonResponse(
         {
@@ -121,9 +115,22 @@ def quiz_status(request, quiz_id):
 @login_required
 @require_POST
 def quiz_delete(request, quiz_id):
-    quiz = get_object_or_404(Quiz, pk=quiz_id, user=request.user)
+    quiz = _owned_quiz(request, quiz_id)
     document = quiz.document
-    quiz.delete()
-    document.delete()
+    repo = get_repository()
+    repo.delete_quiz(quiz)
+    repo.delete_document(document)
     messages.success(request, "Quiz deleted.")
     return redirect("dashboard")
+
+
+def _owned_quiz(request, quiz_id):
+    """Fetch a quiz the request user owns, or raise 404.
+
+    The user scope lives in the repository lookup, so a quiz belonging to
+    someone else is indistinguishable from one that does not exist.
+    """
+    quiz = get_repository().get_quiz(request.user, quiz_id)
+    if quiz is None:
+        raise Http404("No Quiz matches the given query.")
+    return quiz

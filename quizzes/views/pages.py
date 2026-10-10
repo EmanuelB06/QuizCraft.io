@@ -3,12 +3,12 @@
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
 from django.shortcuts import redirect, render
 
 from ..forms.auth import SignupForm
-from ..models import Attempt, Question, Quiz
+from ..models import Quiz
 from ..question_types import all_handlers
+from ..services.repository import get_repository
 
 #: The four steps of the walkthrough, as (title, body).
 STEPS = [
@@ -147,42 +147,26 @@ def signup(request):
     return render(request, "registration/signup.html", {"form": form})
 
 
-def _quizzes_for(user):
-    return Quiz.objects.filter(user=user).select_related("document").annotate(
-        total_questions=Count("question_set", distinct=True)
-    )
+def _quizzes_for(user, status=None):
+    return get_repository().list_quizzes(user, status=status)
 
 
 def _stats_for(user) -> dict:
     """The numbers on the dashboard tiles."""
-    attempts = Attempt.objects.filter(user=user)
-    ratios = [
-        score / max_score * 100
-        for score, max_score in attempts.filter(max_score__gt=0).values_list(
-            "score", "max_score"
-        )
-    ]
-    return {
-        "total": Quiz.objects.filter(user=user).count(),
-        "ready": Quiz.objects.filter(user=user, status=Quiz.Status.READY).count(),
-        "questions": Question.objects.filter(quiz__user=user).count(),
-        "attempts": attempts.count(),
-        "average": int(round(sum(ratios) / len(ratios))) if ratios else None,
-    }
+    return get_repository().dashboard_stats(user)
 
 
 @login_required
 def dashboard(request):
     selected_status = request.GET.get("status") or ""
-    quizzes = _quizzes_for(request.user)
-    if selected_status in dict(Quiz.Status.choices):
-        quizzes = quizzes.filter(status=selected_status)
-
+    valid_status = (
+        selected_status if selected_status in dict(Quiz.Status.choices) else None
+    )
     return render(
         request,
         "dashboard.html",
         {
-            "quizzes": quizzes,
+            "quizzes": _quizzes_for(request.user, status=valid_status),
             "stats": _stats_for(request.user),
             "statuses": Quiz.Status.choices,
             "selected_status": selected_status,

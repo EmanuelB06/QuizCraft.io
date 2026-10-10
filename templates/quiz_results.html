@@ -25,7 +25,7 @@
                 <div>
                   <div class="qc-gauge-value">{{ attempt.percentage }}%</div>
                   <div class="small text-body-secondary">
-                    {{ attempt.correct_count }} of {{ attempt.response_set.count }} correct
+                    {{ attempt.correct_count }} of {{ attempt.response_count }} correct
                   </div>
                 </div>
               </div>
@@ -43,7 +43,7 @@
 
     <h2 class="h6 qc-eyebrow text-body-secondary mb-3">Review</h2>
 
-    {% for response in attempt.response_set.all %}
+    {% for response in attempt.responses %}
       <div class="card border-0 shadow-sm mb-3 qc-question-card">
         <div class="card-body p-4">
           <div class="d-flex gap-2 mb-3">

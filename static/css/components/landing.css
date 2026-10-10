@@ -8,16 +8,94 @@
    Depends on: tokens.css
    ============================================================ */
 
+/* --- Hero --------------------------------------------------- */
+
 .qc-hero {
   position: relative;
+  isolation: isolate;
   overflow: hidden;
-  background:
+  background-color: var(--qc-hero-bg-to);
+  background-image:
     radial-gradient(46rem 22rem at 85% -30%, rgba(6, 182, 212, 0.22), transparent 62%),
     radial-gradient(40rem 20rem at 0% 130%, rgba(13, 148, 136, 0.2), transparent 62%),
-    linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+    radial-gradient(var(--qc-hero-dot) 1px, transparent 1.6px),
+    linear-gradient(180deg, var(--qc-hero-highlight) 0%, transparent 34%),
+    linear-gradient(135deg, var(--qc-hero-bg-from) 0%, var(--qc-hero-bg-to) 100%);
+  background-size: auto, auto, 22px 22px, auto, auto;
+  background-repeat: no-repeat, no-repeat, repeat, no-repeat, no-repeat;
   border: 1px solid rgba(var(--qc-primary-rgb), 0.14);
-  border-radius: 1.4rem;
-  box-shadow: var(--qc-shadow);
+  border-radius: 1.6rem;
+  box-shadow: var(--qc-shadow-lg);
+}
+
+/* Two blurred glow orbs that drift behind the copy. They sit on
+   z-index 0 while the hero's direct children are lifted to 1, so
+   no foreground selector has to know they exist. */
+.qc-hero::before,
+.qc-hero::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 50%;
+  filter: blur(48px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.qc-hero::before {
+  top: -6rem;
+  right: -3rem;
+  background: rgba(6, 182, 212, 0.45);
+  animation: qc-float 14s ease-in-out infinite;
+}
+
+.qc-hero::after {
+  bottom: -7rem;
+  left: -4rem;
+  background: rgba(13, 148, 136, 0.4);
+  animation: qc-float 18s ease-in-out infinite reverse;
+}
+
+.qc-hero > * {
+  position: relative;
+  z-index: 1;
+  animation: qc-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.qc-hero > *:nth-child(2) { animation-delay: 0.06s; }
+.qc-hero > *:nth-child(3) { animation-delay: 0.12s; }
+.qc-hero > *:nth-child(4) { animation-delay: 0.18s; }
+.qc-hero > *:nth-child(5) { animation-delay: 0.24s; }
+
+@keyframes qc-float {
+  0%,
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -1.5rem, 0) scale(1.08); }
+}
+
+@keyframes qc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.9rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.qc-hero h1 {
+  font-size: clamp(2.1rem, 1.35rem + 3.3vw, 3.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.qc-hero .lead {
+  font-size: clamp(1rem, 0.94rem + 0.3vw, 1.15rem);
+  max-width: 44rem;
+  margin-inline: auto;
 }
 
 .qc-text-gradient {
@@ -46,6 +124,20 @@
   font-weight: 700;
   padding: 0.35rem 1rem;
   box-shadow: var(--qc-shadow-sm);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qc-badge i {
+  color: var(--qc-accent);
+}
+
+@media (hover: hover) {
+  .qc-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--qc-shadow);
+  }
 }
 
 .qc-badge-logo {
@@ -69,30 +161,72 @@
   gap: 0.4rem;
 }
 
+.qc-trust-item i {
+  color: var(--qc-primary);
+}
+
 .qc-section-title {
-  font-size: 1.75rem;
+  font-size: clamp(1.5rem, 1.12rem + 1.4vw, 2.05rem);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
-/* The rail is drawn once and each badge sits on top of it, so it
-   works at every breakpoint without nth-child arithmetic. This
-   class has to go on the .row itself: --bs-gutter-x is defined
-   there, not on :root, and .row carries a negative inline margin,
-   so the first column's content box is half a gutter in from the
-   row's own left edge. */
+/* --- "How it works" timeline -------------------------------- */
+
+/* The rail is drawn once and each badge sits on top of it. It
+   flips orientation with the grid: a vertical rail when the
+   columns stack one-up (below 576px), and a horizontal connector
+   from each circle to the next when they sit two- or four-up.
+   The connector is anchored to the circle (left: 2.7rem) rather
+   than the column, so it stays aligned whatever the column width,
+   and it reaches the next circle's centre via the inherited
+   --bs-gutter-x. Since connectors are descendants of the .row
+   that defines --bs-gutter-x, the variable resolves here. */
 .qc-timeline {
   position: relative;
 }
 
-.qc-timeline::before {
-  content: "";
-  position: absolute;
-  top: 1.35rem;
-  bottom: 1.35rem;
-  width: 2px;
-  left: calc(var(--bs-gutter-x) / 2 + 1.35rem);
-  background: linear-gradient(180deg, var(--qc-primary-focus), var(--qc-primary-soft));
+@media (max-width: 575.98px) {
+  .qc-timeline::before {
+    content: "";
+    position: absolute;
+    top: 1.35rem;
+    bottom: 1.35rem;
+    left: calc(var(--bs-gutter-x) / 2 + 1.35rem);
+    width: 2px;
+    background: linear-gradient(180deg, var(--qc-primary-focus), var(--qc-primary-soft));
+  }
+}
+
+@media (min-width: 576px) {
+  .qc-step {
+    position: relative;
+  }
+
+  .qc-step::after {
+    content: "";
+    position: absolute;
+    top: 1.35rem;
+    left: 2.7rem;
+    right: calc(-1 * (var(--bs-gutter-x) + 1.35rem));
+    height: 2px;
+    transform: translateY(-50%);
+    background: linear-gradient(90deg, var(--qc-primary-focus), var(--qc-primary-soft));
+    z-index: 0;
+  }
+
+  /* No connector leaves the last step in each row. Two-up rows run
+     from 576px to just below the four-up breakpoint; four-up rows
+     from 992px up. */
+  @media (max-width: 991.98px) {
+    .qc-timeline > [class*="col-"]:nth-child(2n) .qc-step::after {
+      display: none;
+    }
+  }
+
+  .qc-timeline > [class*="col-"]:nth-child(4n) .qc-step::after {
+    display: none;
+  }
 }
 
 .qc-step-num {
@@ -117,6 +251,8 @@
   margin-bottom: 0.35rem;
 }
 
+/* --- Capability cards --------------------------------------- */
+
 .qc-icon-tile {
   display: grid;
   place-items: center;
@@ -127,23 +263,43 @@
   background: var(--qc-primary-soft);
   color: var(--qc-primary);
   font-size: 1.25rem;
+  box-shadow: inset 0 0 0 1px rgba(var(--qc-primary-rgb), 0.08);
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .qc-cap-card {
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.qc-cap-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(var(--qc-primary-rgb), 0.25) !important;
-  box-shadow: var(--qc-shadow) !important;
-}
-
-.qc-cap-card:hover .qc-icon-tile {
+/* A gradient cap that wipes in from the left on hover. */
+.qc-cap-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
   background: var(--qc-gradient);
-  color: #fff;
-  transform: scale(1.05);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s ease;
+}
+
+@media (hover: hover) {
+  .qc-cap-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--qc-shadow-lg) !important;
+  }
+
+  .qc-cap-card:hover::before {
+    transform: scaleX(1);
+  }
+
+  .qc-cap-card:hover .qc-icon-tile {
+    background: var(--qc-gradient);
+    color: #fff;
+    transform: scale(1.06) rotate(-3deg);
+  }
 }
 
 .qc-chip {
@@ -157,10 +313,59 @@
   font-weight: 600;
 }
 
+/* --- FAQ ---------------------------------------------------- */
+
 .qc-faq {
   background: #fff;
   border: 1px solid var(--qc-hairline);
   border-radius: 1.25rem;
   overflow: hidden;
   box-shadow: var(--qc-shadow-sm);
+}
+
+.qc-faq .accordion-item {
+  border: 0;
+  background: transparent;
+}
+
+.qc-faq .accordion-item + .accordion-item {
+  border-top: 1px solid var(--qc-hairline);
+}
+
+.qc-faq .accordion-button {
+  font-weight: 600;
+  color: var(--qc-ink);
+  padding: 1.05rem 1.25rem;
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.qc-faq .accordion-button:not(.collapsed) {
+  background: var(--qc-primary-soft);
+  color: var(--qc-primary-emphasis);
+  box-shadow: none;
+}
+
+.qc-faq .accordion-button:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.qc-faq .accordion-button:focus-visible {
+  box-shadow: 0 0 0 4px rgba(var(--qc-primary-rgb), 0.15);
+}
+
+@media (hover: hover) {
+  .qc-faq .accordion-button:hover {
+    background: rgba(var(--qc-primary-rgb), 0.06);
+  }
+}
+
+.qc-faq .accordion-body {
+  padding: 0.25rem 1.25rem 1.1rem;
+  color: var(--qc-muted);
+}
+
+.qc-faq .accordion-item:has(.accordion-button:not(.collapsed)) {
+  box-shadow: inset 3px 0 0 var(--qc-primary);
 }

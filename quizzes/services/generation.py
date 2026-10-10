@@ -15,12 +15,13 @@ import time
 from typing import Protocol
 
 from django.conf import settings
-from django.db import close_old_connections, transaction
+from django.db import close_old_connections
 
-from ..models import Question, QuestionType, Quiz
+from ..models import QuestionType, Quiz
 from ..question_types import get_handler
 from ..question_types.normalize import normalize
 from . import gemini
+from .repository import get_repository
 
 logger = logging.getLogger(__name__)
 
@@ -137,26 +138,30 @@ def _merge(candidates, target_count):
     return merged[:target_count]
 
 
-def run_generation(quiz_id, generator=None):
+def run_generation(quiz_id, generator=None, user_id=None):
     """Generate and persist the questions for a quiz. Safe to call in a thread.
 
     `generator` defaults to the Gemini client; passing an alternative satisfies
     the QuestionGenerator protocol instead of reaching for the provider here.
+    `user_id` is only needed by the Firestore store, whose records live under
+    the owning user; the ORM path ignores it.
     """
     close_old_connections()
+    repo = get_repository()
     try:
-        _run_generation(quiz_id, generator or default_generator())
+        _run_generation(repo, quiz_id, user_id, generator or default_generator())
     except Exception as exc:
         logger.exception("Quiz generation failed for %s", quiz_id)
-        Quiz.objects.filter(pk=quiz_id).update(
-            status=Quiz.Status.FAILED, error_message=str(exc)[:2000]
-        )
+        repo.mark_quiz_failed(quiz_id, str(exc)[:2000], user_id=user_id)
     finally:
         close_old_connections()
 
 
-def _run_generation(quiz_id, generator):
-    quiz = Quiz.objects.select_related("document").get(pk=quiz_id)
+def _run_generation(repo, quiz_id, user_id, generator):
+    quiz = repo.get_quiz_by_id(quiz_id, user_id=user_id)
+    if quiz is None:
+        raise NoValidQuestions(f"Quiz {quiz_id} no longer exists.")
+    owner_id = quiz.user_id
     document = quiz.document
     types = [t for t in (quiz.question_types or []) if t in QuestionType.values]
     if not types:
@@ -166,10 +171,13 @@ def _run_generation(quiz_id, generator):
     # Ask for a little extra per chunk so de-duplication still leaves enough.
     per_chunk = _allocate(max(quiz.question_count + 4, len(chunks) * 2), len(chunks))
 
-    quiz.status = Quiz.Status.PROCESSING
-    quiz.progress_done = 0
-    quiz.progress_total = len(chunks)
-    quiz.save(update_fields=["status", "progress_done", "progress_total"])
+    repo.update_quiz_by_id(
+        quiz_id,
+        user_id=owner_id,
+        status=Quiz.Status.PROCESSING,
+        progress_done=0,
+        progress_total=len(chunks),
+    )
 
     candidates = []
     for index, (chunk, quota) in enumerate(zip(chunks, per_chunk), start=1):
@@ -182,8 +190,7 @@ def _run_generation(quiz_id, generator):
             if item:
                 candidates.append(item)
 
-        quiz.progress_done = index
-        quiz.save(update_fields=["progress_done"])
+        repo.update_quiz_by_id(quiz_id, user_id=owner_id, progress_done=index)
 
         if index < len(chunks):
             # The free tier allows roughly 15 requests a minute. Pacing here is
@@ -197,15 +204,11 @@ def _run_generation(quiz_id, generator):
             "Try a longer file, or a different question count."
         )
 
-    with transaction.atomic():
-        quiz.question_set.all().delete()
-        Question.objects.bulk_create(
-            [
-                Question(quiz=quiz, order=position, **item)
-                for position, item in enumerate(final, start=1)
-            ]
-        )
-        Quiz.objects.filter(pk=quiz_id).update(
+    with repo.transaction():
+        repo.replace_questions(quiz, final)
+        repo.update_quiz_by_id(
+            quiz_id,
+            user_id=owner_id,
             status=Quiz.Status.READY,
             progress_done=len(chunks),
             question_count=len(final),
@@ -217,7 +220,7 @@ def start_background_generation(quiz, generator=None):
     """Kick off generation without blocking the request/response cycle."""
     thread = threading.Thread(
         target=run_generation,
-        args=(str(quiz.pk), generator),
+        args=(str(quiz.pk), generator, str(quiz.user_id)),
         daemon=True,
         name=f"quizgen-{quiz.pk}",
     )

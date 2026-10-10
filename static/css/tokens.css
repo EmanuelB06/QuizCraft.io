@@ -28,6 +28,13 @@
   /* The standard CTA treatment: a diagonal teal→cyan wash. */
   --qc-gradient: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%);
 
+  /* Landing hero surface. Tints derived from the brand ramp so the hero
+     stays in step with a re-theme; the only place these literals live. */
+  --qc-hero-bg-from: #f0fdfa;
+  --qc-hero-bg-to: #ecfeff;
+  --qc-hero-highlight: rgba(255, 255, 255, 0.66);
+  --qc-hero-dot: rgba(13, 148, 136, 0.07);
+
   --qc-ink: #0f172a;
   --qc-muted: #475569;
   --qc-hairline: rgba(15, 23, 42, 0.08);

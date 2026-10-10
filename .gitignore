@@ -10,3 +10,5 @@ staticfiles/
 .DS_Store
 .vscode/
 .idea/
+
+firebase_credentials.json

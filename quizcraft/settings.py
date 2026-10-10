@@ -3,6 +3,7 @@ Django settings for the QuizCraft project.
 """
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -10,6 +11,11 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
+
+#: True while a `manage.py test ...` run is in progress. Used to keep the suite
+#: on the offline SQLite/ORM path even when .env points at Firestore, so tests
+#: never construct a real Firestore client.
+TESTING = "test" in sys.argv
 
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY", "django-insecure-dev-only-do-not-use-in-production"
@@ -46,6 +52,21 @@ MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "15"))
 CHUNK_CHARS = int(os.environ.get("CHUNK_CHARS", "12000"))
 CHUNK_OVERLAP_CHARS = int(os.environ.get("CHUNK_OVERLAP_CHARS", "400"))
 MIN_SOURCE_CHARS = 200
+
+# --- Firestore (optional data store) ------------------------------------
+# Set DATA_STORE=firestore and point FIREBASE_CREDENTIAL_PATH at a service
+# account JSON to back the business tables with Cloud Firestore instead of
+# SQLite. Leave them empty for the default, fully-offline SQLite store. Django
+# users, sessions and the admin stay on SQLite in either case.
+DATA_STORE = os.environ.get("DATA_STORE", "").strip().lower()
+FIREBASE_CREDENTIAL_PATH = os.environ.get("FIREBASE_CREDENTIAL_PATH", "").strip()
+FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "").strip()
+
+if TESTING:
+    # Force the ORM path in tests: the suite is written against SQLite and must
+    # run fully offline, even when the developer's .env enables Firestore.
+    # Tests that exercise the Firestore store inject a fake client directly.
+    DATA_STORE = ""
 
 INSTALLED_APPS = [
     "django.contrib.admin",
