@@ -55,7 +55,9 @@ class OrmRepository:
         document.extracted_text = text
         document.char_count = char_count
         document.page_count = page_count
-        document.save(update_fields=["extracted_text", "char_count", "page_count"])
+        # "file" is included so a discarded upload (name set to None by
+        # document.file.delete) is persisted as empty rather than dangling.
+        document.save(update_fields=["extracted_text", "char_count", "page_count", "file"])
 
     def delete_document(self, document):
         document.delete()

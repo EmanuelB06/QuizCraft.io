@@ -3,6 +3,7 @@
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 
 from ..forms.auth import SignupForm
@@ -133,6 +134,11 @@ def landing(request):
             "faq": FAQ,
         },
     )
+
+
+def health(request):
+    """Login-free liveness probe for the hosting platform's health check."""
+    return JsonResponse({"status": "ok"})
 
 
 def signup(request):

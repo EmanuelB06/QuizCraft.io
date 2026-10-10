@@ -6,11 +6,12 @@ account pages, making a quiz, and working through one.
 """
 
 from .creation import quiz_delete, quiz_progress, quiz_status, upload
-from .pages import dashboard, landing, signup
+from .pages import dashboard, health, landing, signup
 from .review import quiz_edit, quiz_export, quiz_results, quiz_take
 
 __all__ = [
     "dashboard",
+    "health",
     "landing",
     "quiz_delete",
     "quiz_edit",

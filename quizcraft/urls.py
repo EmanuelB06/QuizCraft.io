@@ -8,6 +8,7 @@ from quizzes.forms.auth import LoginForm
 
 
 urlpatterns = [
+    path("health/", quiz_views.health, name="health"),
     path("", quiz_views.landing, name="landing"),
     path("dashboard/", quiz_views.dashboard, name="dashboard"),
     path("accounts/signup/", quiz_views.signup, name="signup"),

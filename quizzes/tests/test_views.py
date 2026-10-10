@@ -2,7 +2,7 @@ import io
 import re
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from pypdf import PdfReader
 
@@ -97,6 +97,33 @@ class UploadFlowTests(TestCase):
         with patch("quizzes.views.creation.extract_text", return_value=("x" * 500, 0)):
             self.post_upload(title="Mitochondria Mastery")
         self.assertEqual(Quiz.objects.get().title, "Mitochondria Mastery")
+
+    @patch("quizzes.views.creation.start_background_generation")
+    @override_settings(DISCARD_SOURCE_UPLOADS=True)
+    def test_source_file_is_discarded_when_enabled(self, mock_start):
+        """With discard on, the bytes are dropped right after extraction."""
+        with patch("quizzes.views.creation.extract_text", return_value=("x" * 500, 0)):
+            response = self.post_upload()
+
+        self.assertEqual(response.status_code, 302)
+        document = Quiz.objects.get().document
+        self.assertFalse(document.file)
+        self.assertEqual(document.original_filename, "notes.txt")
+        self.assertEqual(document.extracted_text, "x" * 500)
+        mock_start.assert_called_once()
+
+    @patch("quizzes.views.creation.start_background_generation")
+    @override_settings(DISCARD_SOURCE_UPLOADS=False)
+    def test_source_file_is_kept_by_default(self, mock_start):
+        """The default keeps today's behaviour (and the ORM path's file)."""
+        with patch("quizzes.views.creation.extract_text", return_value=("x" * 500, 0)):
+            response = self.post_upload()
+
+        self.assertEqual(response.status_code, 302)
+        document = Quiz.objects.get().document
+        self.assertTrue(document.file)
+        self.addCleanup(document.file.delete, save=False)
+        mock_start.assert_called_once()
 
     def test_extraction_failure_shows_a_form_error(self):
         from quizzes.services.extraction import ExtractionError

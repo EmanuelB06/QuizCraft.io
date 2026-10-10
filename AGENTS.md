@@ -16,7 +16,34 @@ Always use the venv interpreter; the global `python` has no Django installed.
 ```
 
 No linter, formatter, type checker, or CI is configured. `manage.py check` is the
-only other gate. Full suite is 213 tests; keep it green.
+only other gate. Full suite is 243 tests; keep it green.
+
+## Deployment posture (Render)
+
+The project is set up to fail closed: `DJANGO_DEBUG` defaults to off, and boot
+without `DJANGO_SECRET_KEY` raises instead of using a dev fallback. Local dev
+sets both in `.env`. When not DEBUG, `settings.py` also enables HTTPS
+enforcement, secure cookies and HSTS. `manage.py check --deploy` should stay
+clean except the lone, deliberate `security.W021` (HSTS preload is opted into
+only via `SECURE_HSTS_PRELOAD=1`, since it is irreversible).
+
+Three deploy-time switches live in settings and are read from env:
+
+- `DATABASE_URL` — Django's own tables (auth, sessions, admin) move from the
+  SQLite file to a server DB when set. Business tables still follow
+  `DATA_STORE` (Firestore). Locally and in tests it must stay unset: the suite
+  creates its test database off whatever engine the setting names.
+- `DISCARD_SOURCE_UPLOADS=1` — the uploaded source is only ever read for text
+  extraction (`views/creation.py`), so its bytes are deleted right after and
+  the record stores an empty `file` path. Default off preserves the old
+  "keep the upload" behaviour; `OrmRepository.save_document_extraction`
+  persists the cleared field so both paths report no file. gated tests are
+  `test_source_file_is_discarded_when_enabled` / `..._kept_by_default`.
+- `http://<host>/health/` is a login-free JSON probe for the platform's health
+  check (`quizzes.views.health`).
+
+A static pipeline exists but is only exercised at deploy time (collectstatic +
+WhiteNoise); `runserver` keeps using the plain staticfiles backend.
 
 If you pipe a test run through `Select-String`/`grep`, the `Ran N tests` and
 `OK`/`FAILED` summary gets lost and it looks like the run hung. Redirect to a file

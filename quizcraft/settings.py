@@ -17,11 +17,21 @@ load_dotenv(BASE_DIR / ".env")
 #: never construct a real Firestore client.
 TESTING = "test" in sys.argv
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY", "django-insecure-dev-only-do-not-use-in-production"
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "").strip()
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
+# Fail closed: DEBUG defaults to off, and a production boot without a secret
+# key is an error rather than a silently insecure fallback. Local development
+# sets DJANGO_DEBUG=1 in .env and gets the throwaway dev key.
+DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
+
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-dev-only-do-not-use-in-production"
+    else:
+        raise RuntimeError(
+            "DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is off. "
+            "See .env.example."
+        )
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -34,6 +44,20 @@ CSRF_TRUSTED_ORIGINS = [
     for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
     if o.strip()
 ]
+
+# --- Production hardening -------------------------------------------------
+# Only safe behind a reverse proxy that terminates TLS, which is how Render
+# serves the site. Stays off locally under runserver.
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # Opt into the browser preload list only once you are sure the whole site
+    # is HTTPS forever; it is effectively irreversible.
+    SECURE_HSTS_PRELOAD = os.environ.get("SECURE_HSTS_PRELOAD", "0") == "1"
 
 # --- AI provider ---------------------------------------------------------
 # Free keys: https://aistudio.google.com/apikey
@@ -57,7 +81,8 @@ MIN_SOURCE_CHARS = 200
 # Set DATA_STORE=firestore and point FIREBASE_CREDENTIAL_PATH at a service
 # account JSON to back the business tables with Cloud Firestore instead of
 # SQLite. Leave them empty for the default, fully-offline SQLite store. Django
-# users, sessions and the admin stay on SQLite in either case.
+# users, sessions and the admin stay wherever DATABASES points (SQLite locally,
+# DATABASE_URL in production) in either case.
 DATA_STORE = os.environ.get("DATA_STORE", "").strip().lower()
 FIREBASE_CREDENTIAL_PATH = os.environ.get("FIREBASE_CREDENTIAL_PATH", "").strip()
 FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "").strip()
@@ -80,6 +105,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -118,6 +144,17 @@ DATABASES = {
     }
 }
 
+# Production runs Django's own tables (auth, sessions, admin) on a server
+# database. DATA_STORE=firestore only moves the business tables; accounts need
+# a durable home because the SQLite file is ephemeral on the host. Leave
+# DATABASE_URL unset locally and in the test suite so they keep using SQLite.
+if os.environ.get("DATABASE_URL"):
+    import dj_database_url
+
+    DATABASES["default"] = dj_database_url.parse(
+        os.environ["DATABASE_URL"], conn_max_age=600
+    )
+
 # Swaps in a fast password hasher and a temporary MEDIA_ROOT for the test run.
 # See quizcraft/testing.py for why. `manage.py test` picks this up on its own.
 TEST_RUNNER = "quizcraft.testing.QCDiscoverRunner"
@@ -134,11 +171,57 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+#: collectstatic output, served by WhiteNoise in production.
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        # Hashed, compressed files in production so caches can be sent
+        # long-lived and immutably; the plain backend under runserver because
+        # the manifest storage needs a collectstatic run to resolve.
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if not DEBUG
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+    },
+}
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+#: The uploaded source is only ever read for text extraction. When on, the
+#: bytes are deleted right after extraction so nothing is persisted on disk.
+DISCARD_SOURCE_UPLOADS = os.environ.get("DISCARD_SOURCE_UPLOADS", "0") == "1"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "quizzes": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

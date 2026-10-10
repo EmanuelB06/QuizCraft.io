@@ -60,6 +60,13 @@ def _prepare_quiz(user, data):
         repo.delete_document(document)
         raise
 
+    if settings.DISCARD_SOURCE_UPLOADS:
+        # The source is only ever read for extraction; drop the bytes so no
+        # upload is persisted. The record stores an empty `file` path, which
+        # hydration already handles.
+        document.file.delete(save=False)
+        document.file = ""
+
     repo.save_document_extraction(document, text, len(text), pages)
 
     return repo.create_quiz(
@@ -120,6 +127,8 @@ def quiz_delete(request, quiz_id):
     repo = get_repository()
     repo.delete_quiz(quiz)
     repo.delete_document(document)
+    if document.file:
+        document.file.delete(save=False)
     messages.success(request, "Quiz deleted.")
     return redirect("dashboard")
 
