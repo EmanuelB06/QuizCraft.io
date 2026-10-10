@@ -362,15 +362,19 @@ class FirestoreViewFlowTests(TestCase):
     """
 
     def setUp(self):
-        self.user = make_user()
-        self.client.force_login(self.user)
         self.fake = FakeFirestore()
-        self.repo = FirestoreRepository(client=self.fake)
+        # Start the patch before make_user/force_login: under this class's
+        # override the account manager and the session engine also build a
+        # store, and they resolve the client through the same factory.
         self._patch = patch(
             "quizcraft.firebase.firestore_client", return_value=self.fake
         )
         self._patch.start()
         self.addCleanup(self._patch.stop)
+
+        self.user = make_user()
+        self.client.force_login(self.user)
+        self.repo = FirestoreRepository(client=self.fake)
         self.document = self._document()
         self.quiz = self.repo.create_quiz(
             self.user,

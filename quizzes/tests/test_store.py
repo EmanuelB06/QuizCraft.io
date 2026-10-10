@@ -6,7 +6,7 @@ shapes are pinned offline. `FirestoreStore` must never touch the network in
 the test suite.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from django.test import SimpleTestCase, TestCase, override_settings
 
@@ -138,6 +138,53 @@ class FirestoreStoreTests(SimpleTestCase):
         self.assertEqual(stored["score"], 3)
         self.assertEqual(stored["max_score"], 4)
 
+    def test_user_round_trips(self):
+        self.store.save_user(self._user())
+        loaded = self.store.get_user("u1")
+        self.assertEqual(loaded["username"], "anna")
+        self.assertEqual(loaded["id"], "u1")
+
+    def test_get_user_by_username(self):
+        self.store.save_user(self._user(username="anna"))
+        self.store.save_user(self._user(user_id="u2", username="bob"))
+        self.assertEqual(self.store.get_user_by_username("bob")["id"], "u2")
+        self.assertIsNone(self.store.get_user_by_username("nope"))
+
+    def test_list_users(self):
+        self.store.save_user(self._user(username="anna"))
+        self.store.save_user(self._user(user_id="u2", username="bob"))
+        self.assertEqual(
+            [record["username"] for record in self.store.list_users()],
+            ["anna", "bob"],
+        )
+
+    def test_delete_user(self):
+        self.store.save_user(self._user())
+        self.store.delete_user("u1")
+        self.assertIsNone(self.store.get_user("u1"))
+
+    def test_session_round_trips(self):
+        expires = datetime.now(timezone.utc) + timedelta(days=1)
+        self.store.save_session("s1", "encoded-bytes", expires)
+        stored = self.store.get_session("s1")
+        self.assertEqual(stored["data"], "encoded-bytes")
+        self.assertEqual(stored["expire_date"], expires)
+        self.assertTrue(self.store.session_exists("s1"))
+        self.assertFalse(self.store.session_exists("nope"))
+
+    def test_delete_session(self):
+        self.store.save_session("s1", "data", datetime.now(timezone.utc))
+        self.store.delete_session("s1")
+        self.assertIsNone(self.store.get_session("s1"))
+
+    def test_clear_expired_sessions(self):
+        now = datetime.now(timezone.utc)
+        self.store.save_session("fresh", "data", now + timedelta(minutes=5))
+        self.store.save_session("stale", "data", now - timedelta(minutes=5))
+        self.store.clear_expired_sessions(now)
+        self.assertTrue(self.store.session_exists("fresh"))
+        self.assertFalse(self.store.session_exists("stale"))
+
     def test_records_are_isolated_per_user(self):
         self.store.create_quiz(self._quiz(user_id="u1"))
         self.store.create_quiz(self._quiz(user_id="u2", quiz_id="quiz2"))
@@ -184,6 +231,19 @@ class FirestoreStoreTests(SimpleTestCase):
             "score": 3,
             "max_score": 4,
             "submitted_at": datetime.now(timezone.utc),
+        }
+
+    def _user(self, user_id="u1", username="anna"):
+        return {
+            "id": user_id,
+            "username": username,
+            "email": "anna@example.com",
+            "password": "pbkdf2-sha256$dummy$hash",
+            "is_active": True,
+            "is_staff": False,
+            "is_superuser": False,
+            "last_login": None,
+            "date_joined": datetime.now(timezone.utc),
         }
 
 

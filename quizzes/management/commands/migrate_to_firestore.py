@@ -1,7 +1,10 @@
 """One-off: copy the SQLite business rows up to Cloud Firestore.
 
-Django's own tables (users, sessions, admin) are never copied -- they stay on
-SQLite. Only documents, quizzes, questions, attempts and responses move.
+Django's own tables (users, sessions, admin) are never copied -- this command
+moves only documents, quizzes, questions, attempts and responses. Accounts are
+written to Firestore by the app itself when DATA_STORE is on (see
+quizzes/models.py), so an existing SQLite account has to sign up again rather
+than being migrated here.
 
 `SourceDocument` and `Attempt` are autoincrement integers in SQLite but need
 string ids in Firestore, so this command derives a **deterministic** uuid5 id
@@ -11,7 +14,7 @@ duplicating, and a quiz keeps pointing at the same document.
 Usage:
     manage.py migrate_to_firestore --dry-run
     manage.py migrate_to_firestore
-    manage.py migrate_to_firestore --user 3
+    manage.py migrate_to_firestore --user 7f1c2c1e-8a54-4f3d-9d1e-0d2f6b6a1a11
 """
 
 import uuid
@@ -49,9 +52,8 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--user",
-            type=int,
             default=None,
-            help="Only migrate the data owned by this Django user id.",
+            help="Only migrate the data owned by this Django user id (a UUID).",
         )
 
     def handle(self, *args, **options):

@@ -12,8 +12,10 @@ when `firestore_client()` is called, and only when Firebase is configured
 JSON). With Firebase absent the app runs exactly as it always has -- SQLite,
 fully offline -- which is how the test suite runs.
 
-Django's users, sessions, the admin and CSRF stay on SQLite regardless;
-Firestore only replaces the business-entity tables.
+When DATA_STORE=firestore the accounts and sessions live there too (see
+quizzes/models.py and quizzes/session_store.py); with Firebase absent the app
+runs exactly as it always has -- SQLite, fully offline -- which is how the test
+suite runs.
 """
 
 from functools import lru_cache

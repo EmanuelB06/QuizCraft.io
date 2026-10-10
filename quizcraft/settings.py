@@ -79,10 +79,11 @@ MIN_SOURCE_CHARS = 200
 
 # --- Firestore (optional data store) ------------------------------------
 # Set DATA_STORE=firestore and point FIREBASE_CREDENTIAL_PATH at a service
-# account JSON to back the business tables with Cloud Firestore instead of
-# SQLite. Leave them empty for the default, fully-offline SQLite store. Django
-# users, sessions and the admin stay wherever DATABASES points (SQLite locally,
-# DATABASE_URL in production) in either case.
+# account JSON to back the data with Cloud Firestore instead of SQLite. When
+# it is on, accounts and sessions also move into Firestore (AUTH_USER_MODEL and
+# SESSION_ENGINE below read DATA_STORE at call time), so a server-hosted
+# deployment keeps nothing on an ephemeral local disk. Leave DATA_STORE empty
+# for the default, fully-offline SQLite store.
 DATA_STORE = os.environ.get("DATA_STORE", "").strip().lower()
 FIREBASE_CREDENTIAL_PATH = os.environ.get("FIREBASE_CREDENTIAL_PATH", "").strip()
 FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "").strip()
@@ -92,6 +93,12 @@ if TESTING:
     # run fully offline, even when the developer's .env enables Firestore.
     # Tests that exercise the Firestore store inject a fake client directly.
     DATA_STORE = ""
+    # Blank the credentials too, not just DATA_STORE. override_settings can put
+    # a single test back into Firestore mode, and with real credentials in
+    # .env that test would build a live client and write to the project -- so
+    # an unwrapped test now fails with FirestoreUnavailable instead.
+    FIREBASE_CREDENTIAL_PATH = ""
+    FIREBASE_PROJECT_ID = ""
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -144,10 +151,12 @@ DATABASES = {
     }
 }
 
-# Production runs Django's own tables (auth, sessions, admin) on a server
-# database. DATA_STORE=firestore only moves the business tables; accounts need
-# a durable home because the SQLite file is ephemeral on the host. Leave
-# DATABASE_URL unset locally and in the test suite so they keep using SQLite.
+# Production can run Django's own tables (auth, sessions, admin) on a server
+# database via DATABASE_URL, for deployments that keep DATA_STORE off. Under
+# DATA_STORE=firestore the accounts and sessions move into Firestore and this
+# setting is left unset, so the only database is the ephemeral SQLite file
+# that `migrate` builds and that never holds real data. Leave DATABASE_URL
+# unset locally and in the test suite so they keep using SQLite.
 if os.environ.get("DATABASE_URL"):
     import dj_database_url
 
@@ -158,6 +167,12 @@ if os.environ.get("DATABASE_URL"):
 # Swaps in a fast password hasher and a temporary MEDIA_ROOT for the test run.
 # See quizcraft/testing.py for why. `manage.py test` picks this up on its own.
 TEST_RUNNER = "quizcraft.testing.QCDiscoverRunner"
+
+# When DATA_STORE=firestore, this custom model and the session engine back
+# accounts and sessions on Firestore (see quizzes/models.py, quizzes/session_store.py).
+# With the default SQLite store they behave like a normal Django user/session.
+AUTH_USER_MODEL = "quizzes.User"
+SESSION_ENGINE = "quizzes.session_store"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

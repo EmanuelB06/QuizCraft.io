@@ -16,7 +16,7 @@ Always use the venv interpreter; the global `python` has no Django installed.
 ```
 
 No linter, formatter, type checker, or CI is configured. `manage.py check` is the
-only other gate. Full suite is 243 tests; keep it green.
+only other gate. Full suite is 263 tests; keep it green.
 
 ## Deployment posture (Render)
 
@@ -30,9 +30,12 @@ only via `SECURE_HSTS_PRELOAD=1`, since it is irreversible).
 Three deploy-time switches live in settings and are read from env:
 
 - `DATABASE_URL` — Django's own tables (auth, sessions, admin) move from the
-  SQLite file to a server DB when set. Business tables still follow
-  `DATA_STORE` (Firestore). Locally and in tests it must stay unset: the suite
-  creates its test database off whatever engine the setting names.
+  SQLite file to a server DB when set, for deployments that keep `DATA_STORE`
+  off. Under `DATA_STORE=firestore` accounts and sessions live in Firestore
+  instead and `DATABASE_URL` stays unset, so the only DB is the SQLite file
+  `migrate` builds and it never holds real data. Locally and in tests it must
+  stay unset: the suite creates its test database off whatever engine the
+  setting names.
 - `DISCARD_SOURCE_UPLOADS=1` — the uploaded source is only ever read for text
   extraction (`views/creation.py`), so its bytes are deleted right after and
   the record stores an empty `file` path. Default off preserves the old
@@ -330,11 +333,21 @@ uploads, consider cleaning up after it.
 
 ## Firestore is the connected data store
 
-`settings.DATA_STORE` selects the business-data backend, and `.env` sets it to
+`settings.DATA_STORE` selects the backend for everything, and `.env` sets it to
 `firestore` for the live project (`quizcraft-da152`, creds in `.env`, file
-gitignored). Leave it empty/`sqlite` to keep everything on the ORM. Django's own
-tables (users, sessions, admin, CSRF) stay on SQLite either way -- only
-documents/quizzes/questions/attempts/responses move.
+gitignored). Leave it empty/`sqlite` to keep everything on the ORM. When it is
+on, **accounts and sessions move too** — `AUTH_USER_MODEL = "quizzes.User"` and
+`SESSION_ENGINE = "quizzes.session_store"` are set unconditionally in settings
+and read `DATA_STORE` at call time, so a Firestore deployment keeps nothing on
+the host's ephemeral disk. Only the Django tables that are neither (`admin`,
+`django_session`'s SQLite twin, CSRF) stay on SQLite, plus whatever `DATABASE_URL`
+names when set.
+
+`quizzes/migrations/0001_initial.py` was rewritten to create `quizzes_user`
+(and the old `0002` was folded into it), so a SQLite file that already applied
+the previous 0001 has the migration recorded but not the table. Rebuild it
+(`Remove-Item db.sqlite3; manage.py migrate`) instead of trying to reconcile —
+nothing lives there but sessions.
 
 Read/write goes through one seam, `quizzes/services/repository.py`:
 
@@ -358,6 +371,25 @@ is offline-safe: `is_configured()`, `credential_path()`, `firestore_client()`
 (None when unconfigured), `app()`, `reset()`. `manage.py firebase_status`
 reports readiness without touching the network.
 
+Accounts and sessions ride the same `DATA_STORE` switch, but through the model
+and the session engine rather than `services/repository.py`:
+
+- `quizzes.models.User` is a custom `AbstractBaseUser` + `PermissionsMixin` with
+  a UUID pk, and `FirestoreUserManager` either falls through to the ORM or
+  reads/writes the `users/{uid}` profile document. Tests inject a fake through
+  `models._firestore_client_override`; with no override the store asks
+  `firebase.firestore_client()`. `_hydrate_user` parses the stored id back into
+  a `UUID`, because a `str` pk makes a loaded account compare unequal to the
+  one that was just created.
+- `quizzes/session_store.py` subclasses Django's db session backend and swaps
+  Firestore into `load`/`save`/`exists`/`delete`/`clear_expired`. The payload is
+  still Django's own encoded session string, so no session semantics change.
+- `UserCreationForm._post_clean` queries the ORM `users` table for uniqueness,
+  which misses Firestore accounts, so `views/pages.signup` picks
+  `FirestoreSignupForm` (a plain `Form` with the same field names) when
+  `DATA_STORE=firestore`, and passes `backend=` to `login()` because the user
+  never came out of `authenticate()`.
+
 `quizzes/services/store.py` defines the Firestore record shapes
 (`document_record`/`quiz_record`/`question_record`/`attempt_record`/
 `response_record`) and `FirestoreStore` (client injected). Layout is
@@ -368,32 +400,44 @@ reuse their SQLite UUIDs; `SourceDocument`, `Attempt` and `Response` are
 autoincrement in SQLite, so Firestore mints UUIDs for them (a response is keyed
 by `question_id`). `points_earned` is stored as a string and parsed back to
 `Decimal`; the raw upload stays on local disk and the record only carries the
-path.
+path. `user_record`/`session_record` shape the account and session documents.
 
 **One-off data move:** `manage.py migrate_to_firestore [--dry-run] [--user ID]`
 copies the SQLite business rows into Firestore. It derives deterministic uuid5
 ids for the integer-pk tables, so it is idempotent (re-running overwrites) and a
-quiz's `document_id` is rewritten to the new document id.
+quiz's `document_id` is rewritten to the new document id. `--user` takes a UUID
+(the account pk is no longer an integer), and accounts are never copied: a
+Firestore account is created by the app when someone signs up.
 
 Tests: `tests/test_repository.py` pins the seam over a **fake Firestore injected
 as the client** (plus an end-to-end view flow and the generation pipeline);
-`tests/test_store.py` pins the store shapes; `tests/test_migrate_command.py`
-pins the migration; `tests/test_firebase.py` guards the "no-op until configured"
-contract. All run offline -- no network, no credentials.
+`tests/test_store.py` pins the store shapes; `tests/test_firebase_auth.py` pins
+the account manager, the session engine and the signup flow over the same fake;
+`tests/test_migrate_command.py` pins the migration; `tests/test_firebase.py`
+guards the "no-op until configured" contract. All run offline -- no network, no
+credentials.
 
 **The suite never touches Firestore.** `quizcraft/settings.py` sets
-`TESTING = "test" in sys.argv` and forces `DATA_STORE = ""` while it is true, so
-a developer `.env` of `DATA_STORE=firestore` does not make tests build a real
-client. Tests that exercise Firestore inject a fake or use `override_settings`.
+`TESTING = "test" in sys.argv` and forces `DATA_STORE = ""` *and* blanks
+`FIREBASE_CREDENTIAL_PATH`/`FIREBASE_PROJECT_ID` while it is true, so neither a
+developer `.env` nor a test's `override_settings(DATA_STORE="firestore")` can
+make the suite build a real client: an unwrapped test gets
+`FirestoreUnavailable` instead of writing to the live project. Tests that
+exercise Firestore inject a fake (`models._firestore_client_override`,
+`session_store.client_override`, or a patch of
+`quizcraft.firebase.firestore_client`).
 
 Two gotchas:
 
 - The Admin SDK `app()`/`firestore_client()` are `lru_cache`d, so a test that
   configures Firebase and one that does not cannot share a process unless
   `firebase.reset()` runs in `setUp`. `FirebaseConfigTests` does this.
-- Because `.env` now carries real credentials, "unconfigured" tests must force
-  it with `override_settings(FIREBASE_CREDENTIAL_PATH="", FIREBASE_PROJECT_ID="")`
-  — the default is configured, the opposite of what it used to be.
+- A test class with `override_settings(DATA_STORE="firestore")` must inject its
+  fake **before** `make_user()`/`force_login()`: the account manager and the
+  session engine build their own store per call, and they resolve the client
+  through `quizcraft.firebase.firestore_client`, so patching it late leaves the
+  user row outside the fake. `FirestoreViewFlowTests` got this wrong once and
+  wrote eight `users/tester` documents into the live project.
 
 ## Layout
 

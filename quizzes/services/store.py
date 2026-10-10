@@ -16,14 +16,18 @@ Layout
 ------
 Each record lives beneath the user's document, which also scopes data access:
 
+  users/{uid}
   users/{uid}/documents/{doc_id}
   users/{uid}/quizzes/{quiz_id}
   users/{uid}/quizzes/{quiz_id}/questions/{question_id}
   users/{uid}/attempts/{attempt_id}
   users/{uid}/attempts/{attempt_id}/responses/{question_id}
+  sessions/{key}
 
-Document ids reuse the SQLite UUIDs so the backends can coexist during a
-migration. Django's users, sessions, admin and CSRF stay on SQLite either way.
+Business ids reuse the SQLite UUIDs so the backends can coexist during a
+migration. When ``DATA_STORE=firestore`` the ``users/{uid}`` documents and the
+``sessions`` collection also hold the account and session data, so a Firestore-
+backed deployment keeps nothing on the host's ephemeral disk.
 """
 
 from __future__ import annotations
@@ -34,6 +38,35 @@ from quizcraft import firebase
 # --- Record builders ------------------------------------------------------
 # Each *_record() maps a Django model instance to a Firestore-shaped dict.
 # The FirestoreStore writes and reads these; the SQLite path never sees them.
+
+
+def user_record(user) -> dict:
+    """The account profile document for a User instance.
+
+    ``password`` holds the Django hash so ``check_password`` works on a
+    hydrated instance. When the account was created by ``get_or_create`` with
+    no password it is an empty, unusable string -- exactly what the ORM path
+    stores for the same call.
+    """
+    return {
+        "id": str(user.pk),
+        "username": user.username,
+        "email": user.email or "",
+        "password": user.password or "",
+        "is_active": bool(user.is_active),
+        "is_staff": bool(user.is_staff),
+        "is_superuser": bool(user.is_superuser),
+        "last_login": user.last_login,
+        "date_joined": user.date_joined,
+    }
+
+
+def session_record(session_key, encoded_data, expire_date) -> dict:
+    return {
+        "key": session_key,
+        "data": encoded_data,
+        "expire_date": expire_date,
+    }
 
 
 def document_record(document) -> dict:
@@ -145,6 +178,62 @@ class FirestoreStore:
 
     def delete_document(self, user_id: str, document_id: str) -> None:
         self._client.document(f"users/{user_id}/documents/{document_id}").delete()
+
+    # -- accounts -----------------------------------------------------------
+
+    def save_user(self, record: dict) -> str:
+        """Write an account profile to ``users/{uid}``.
+
+        In Firestore mode this is where Django's accounts live; the ORM path
+        never sees this record. ``users/{uid}`` is also the parent document of
+        the user's business subcollections.
+        """
+        self._put("users", record)
+        return record["id"]
+
+    def get_user(self, user_id: str) -> dict | None:
+        return self._get(f"users/{user_id}")
+
+    def get_user_by_username(self, username: str) -> dict | None:
+        for record in self.list_users():
+            if record.get("username") == username:
+                return record
+        return None
+
+    def list_users(self) -> list[dict]:
+        collection = self._client.collection("users")
+        return [snap.to_dict() for snap in collection.get()]
+
+    def delete_user(self, user_id: str) -> None:
+        self._client.document(f"users/{user_id}").delete()
+
+    # -- sessions -----------------------------------------------------------
+
+    def save_session(self, session_key: str, encoded_data: str, expire_date) -> str:
+        self._client.collection("sessions").document(session_key).set(
+            session_record(session_key, encoded_data, expire_date)
+        )
+        return session_key
+
+    def get_session(self, session_key: str) -> dict | None:
+        return self._get(f"sessions/{session_key}")
+
+    def session_exists(self, session_key: str) -> bool:
+        snapshot = self._client.document(f"sessions/{session_key}").get()
+        return snapshot.exists
+
+    def delete_session(self, session_key: str) -> None:
+        self._client.document(f"sessions/{session_key}").delete()
+
+    def clear_expired_sessions(self, cutoff=None) -> None:
+        from django.utils import timezone
+
+        cutoff = cutoff or timezone.now()
+        collection = self._client.collection("sessions")
+        for snap in collection.get():
+            record = snap.to_dict()
+            if record and record.get("expire_date") and record["expire_date"] < cutoff:
+                snap.reference.delete()
 
     # -- quizzes -----------------------------------------------------------
 

@@ -1,12 +1,13 @@
 """Static and account pages."""
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 
-from ..forms.auth import SignupForm
+from ..forms.auth import FirestoreSignupForm, SignupForm
 from ..models import Quiz
 from ..question_types import all_handlers
 from ..services.repository import get_repository
@@ -144,10 +145,19 @@ def health(request):
 def signup(request):
     if request.user.is_authenticated:
         return redirect("dashboard")
-    form = SignupForm(request.POST or None)
+    # Under Firestore the stock UserCreationForm would query an empty ORM table
+    # for uniqueness; the Firestore variant checks the account store instead.
+    form_cls = (
+        FirestoreSignupForm
+        if (settings.DATA_STORE or "").lower() == "firestore"
+        else SignupForm
+    )
+    form = form_cls(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
-        login(request, user)
+        # The created user was never returned by `authenticate`, so Django has
+        # no way to pick a backend; name it explicitly (it is the only one).
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
         messages.success(request, f"Welcome, {user.username}.")
         return redirect("dashboard")
     return render(request, "registration/signup.html", {"form": form})
