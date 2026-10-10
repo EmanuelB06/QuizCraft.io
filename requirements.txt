@@ -10,3 +10,4 @@ gunicorn>=23.0
 whitenoise>=6.9
 dj-database-url>=2.3
 psycopg[binary]>=3.2
+firebase-admin>=7.7.0
