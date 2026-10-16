@@ -47,8 +47,11 @@ CSRF_TRUSTED_ORIGINS = [
 
 # --- Production hardening -------------------------------------------------
 # Only safe behind a reverse proxy that terminates TLS, which is how Render
-# serves the site. Stays off locally under runserver.
-if not DEBUG:
+# serves the site. Stays off locally under runserver. DJANGO_SSL_REDIRECT=0
+# opts out of the whole block for an HTTP-only deployment (e.g. a bare EC2
+# box with no certificate yet); secure cookies and HSTS are meaningless
+# without TLS, so they are skipped together with the redirect.
+if not DEBUG and os.environ.get("DJANGO_SSL_REDIRECT", "1") == "1":
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True

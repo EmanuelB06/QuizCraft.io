@@ -27,7 +27,13 @@ enforcement, secure cookies and HSTS. `manage.py check --deploy` should stay
 clean except the lone, deliberate `security.W021` (HSTS preload is opted into
 only via `SECURE_HSTS_PRELOAD=1`, since it is irreversible).
 
-Three deploy-time switches live in settings and are read from env:
+Four deploy-time switches live in settings and are read from env:
+
+- `DJANGO_SSL_REDIRECT=0` — when `DEBUG` is off, settings enable the HTTPS-only
+  block (SSL redirect, secure session/CSRF cookies, HSTS). Set this to `0` for a
+  deployment served over plain HTTP (e.g. a bare EC2 box before a certificate is
+  added); the whole block is skipped together, since secure cookies are useless
+  without TLS. Default is on when not `DEBUG`.
 
 - `DATABASE_URL` — Django's own tables (auth, sessions, admin) move from the
   SQLite file to a server DB when set, for deployments that keep `DATA_STORE`
