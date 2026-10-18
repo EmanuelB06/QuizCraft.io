@@ -38,7 +38,9 @@ SOURCE=""
 APP_HOST=""
 
 usage() {
-    sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
+    # Print the header comment block (everything between the shebang and the
+    # first line of code), stripping the leading "# ".
+    awk 'NR > 1 && /^set -euo pipefail/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"
     exit "${1:-0}"
 }
 
@@ -106,6 +108,7 @@ fetch_source() {
     else
         log "Syncing local checkout $SOURCE -> $APP_DIR..."
         install -d -o "$APP_USER" -g "$APP_USER" "$APP_DIR"
+        # Also copy the deployment script if it lives elsewhere? Usually not needed.
         rsync -a --delete --chown="$APP_USER:$APP_USER" \
             --exclude='.git' --exclude='.env' --exclude='db.sqlite3' \
             --exclude='media' --exclude='staticfiles' --exclude='__pycache__' \
@@ -157,12 +160,38 @@ if [ -n "$APP_HOST" ]; then
     log "Set DJANGO_ALLOWED_HOSTS to include $APP_HOST"
 fi
 
+# Ensure CSRF_TRUSTED_ORIGINS includes https scheme for the host if HTTPS is
+# likely; also allow http for local proxy testing when SSL_REDIRECT=0.
+if [ -n "$APP_HOST" ]; then
+    if grep -q '^DJANGO_CSRF_TRUSTED_ORIGINS=' "$ENV_FILE"; then
+        # If it's empty or the placeholder in example, replace it wholesale.
+        if grep -qE '^DJANGO_CSRF_TRUSTED_ORIGINS=$' "$ENV_FILE"; then
+            sed -i "s|^DJANGO_CSRF_TRUSTED_ORIGINS=.*|DJANGO_CSRF_TRUSTED_ORIGINS=http://$APP_HOST,https://$APP_HOST|" "$ENV_FILE"
+        else
+            # Append if missing; avoid duplicates (simple grep check per scheme)
+            for scheme in http https; do
+                if ! grep -qE "^DJANGO_CSRF_TRUSTED_ORIGINS=.*$scheme://$APP_HOST(\b|,)" "$ENV_FILE"; then
+                    sed -i "s|^DJANGO_CSRF_TRUSTED_ORIGINS=.*|&,$scheme://$APP_HOST|" "$ENV_FILE"
+                fi
+            done
+        fi
+    else
+        echo "DJANGO_CSRF_TRUSTED_ORIGINS=http://$APP_HOST,https://$APP_HOST" >> "$ENV_FILE"
+    fi
+    log "Set DJANGO_CSRF_TRUSTED_ORIGINS to include $APP_HOST (http/https)"
+fi
+
 CREDS_PATH=$(grep -E '^FIREBASE_CREDENTIAL_PATH=' "$ENV_FILE" | tail -n1 | cut -d= -f2- || true)
 if [ -n "$CREDS_PATH" ] && [ ! -f "$CREDS_PATH" ]; then
     warn "Firebase credentials not found at $CREDS_PATH -- signup/login will fail until you copy it there."
 fi
-if grep -qE '^DJANGO_SECRET_KEY=(change-me-to-something-random)?$' "$ENV_FILE"; then
-    warn "DJANGO_SECRET_KEY is still the placeholder -- set a real one in $ENV_FILE."
+
+# Generate a secure random DJANGO_SECRET_KEY if it's still the placeholder or empty.
+if grep -qE '^DJANGO_SECRET_KEY=(change-me-to-something-random)?$' "$ENV_FILE" || grep -qE '^DJANGO_SECRET_KEY=$' "$ENV_FILE"; then
+    SECRET_NEW=$("$APP_DIR/.venv/bin/python" -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())" 2>/dev/null || LC_CTYPE=C tr -dc 'A-Za-z0-9!@#$%^&*(-_=+)' </dev/urandom 2>/dev/null | head -c 50)
+    # Fallback if venv isn't ready yet? But we just installed deps; venv has python.
+    sed -i "s|^DJANGO_SECRET_KEY=.*|DJANGO_SECRET_KEY=$SECRET_NEW|" "$ENV_FILE"
+    log "Generated a random DJANGO_SECRET_KEY"
 fi
 if ! grep -qE '^GEMINI_API_KEY=.+' "$ENV_FILE"; then
     warn "GEMINI_API_KEY is empty -- quiz generation will fail until you set it in $ENV_FILE."
