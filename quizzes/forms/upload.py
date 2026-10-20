@@ -1,12 +1,13 @@
 """Upload intake: validate the file and the options a user picked."""
 
 import os
+import re
 
 from django import forms
 from django.conf import settings
 
 from ..models import Difficulty
-from ..question_types import labels as type_labels
+from ..question_types import all_types, get_handler, labels as type_labels
 from ..services.extraction import SUPPORTED_EXTENSIONS
 
 #: Bounds for how many questions one quiz may hold. Used by the form and the UI.
@@ -52,8 +53,10 @@ class QuizUploadForm(forms.Form):
 
     def clean_document(self):
         upload = self.cleaned_data["document"]
-        # The name decides, not the browser's content_type, which a user can set
-        # to anything. The list is the extractor's, so the form cannot advertise
+        # The name is already sanitised (basename, <=255 chars) by Django's
+        # UploadedFile, so only its shape is checked here. The extension
+        # decides, not the browser's content_type, which a user can set to
+        # anything. The list is the extractor's, so the form cannot advertise
         # a format the pipeline would then refuse.
         extension = os.path.splitext(upload.name)[1].lower()
         if extension not in SUPPORTED_EXTENSIONS:
@@ -71,11 +74,35 @@ class QuizUploadForm(forms.Form):
             raise forms.ValidationError("That file is empty.")
         return upload
 
+    def clean_title(self):
+        title = self.cleaned_data["title"]
+        # A title is one plain line: drop stray control characters (which a
+        # text input cannot produce but a crafted POST can) and collapse
+        # whitespace runs, so a pasted heading cannot break the layout.
+        title = re.sub(r"[\x00-\x1f\x7f]", " ", title)
+        return re.sub(r"\s+", " ", title).strip()
+
     def clean_question_types(self):
         types = self.cleaned_data["question_types"]
         if not types:
             raise forms.ValidationError("Choose at least one question type.")
-        return types
+        # De-duplicated and put in registry order, so the stored list does not
+        # depend on the order the boxes happened to be posted in.
+        chosen = set(types)
+        return [value for value in all_types() if value in chosen]
+
+    def clean(self):
+        cleaned = super().clean()
+        types = cleaned.get("question_types") or []
+        # Partial credit only means something when the quiz can contain
+        # multiple-answer questions. Asked of the handlers rather than the
+        # literal `mcq_multi` value, so a future multi-answer type is covered
+        # by the registry rather than by an edit here.
+        if cleaned.get("partial_credit") and not any(
+            get_handler(value).expects_many for value in types
+        ):
+            cleaned["partial_credit"] = False
+        return cleaned
 
 
 __all__ = [
