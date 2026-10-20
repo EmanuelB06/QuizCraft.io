@@ -47,11 +47,16 @@
       No credit card required
     </span>
   </p>
+
+  <span class="qc-hero-ring qc-hero-deco" aria-hidden="true"></span>
+  <span class="qc-hero-blob qc-hero-deco" aria-hidden="true"></span>
 </section>
 
-<section class="mb-5">
+<section class="mb-5 qc-section-dots" id="how-it-works">
   <div class="text-center mb-4">
-    <p class="qc-eyebrow text-primary mb-2">How it works</p>
+    <p class="qc-eyebrow text-primary mb-2">
+      <i class="bi bi-diagram-3" aria-hidden="true"></i> How it works
+    </p>
     <h2 class="qc-section-title">Four steps, start to finish</h2>
   </div>
 
@@ -68,9 +73,11 @@
   </div>
 </section>
 
-<section class="mb-5">
+<section class="mb-5 qc-section-wash" id="features">
   <div class="text-center mb-4">
-    <p class="qc-eyebrow text-primary mb-2">What you get</p>
+    <p class="qc-eyebrow text-primary mb-2">
+      <i class="bi bi-stars" aria-hidden="true"></i> What you get
+    </p>
     <h2 class="qc-section-title">Everything a quiz needs, in one place</h2>
   </div>
 
@@ -79,7 +86,7 @@
       <div class="col-sm-6 col-lg-4">
         <div class="card h-100 border-0 shadow-sm qc-cap-card">
           <div class="card-body p-4">
-            <div class="qc-icon-tile">
+            <div class="qc-icon-tile {% cycle '' 'qc-tile-cyan' 'qc-tile-deep' %}">
               <i class="bi {{ icon }}" aria-hidden="true"></i>
             </div>
             <h3 class="h6 fw-semibold">{{ title }}</h3>
@@ -94,15 +101,35 @@
   </div>
 </section>
 
-<section class="mb-4">
+<section class="qc-cta-band p-4 p-md-5 mb-5 text-center">
+  <p class="qc-eyebrow qc-cta-eyebrow mb-2">Ready when you are</p>
+  <h2 class="qc-section-title mb-2">Turn your next document into a quiz</h2>
+  <p class="small qc-cta-lead mb-4">
+    Upload a file, watch the questions appear, edit anything the model got
+    wrong, then take it in the browser or print it as a PDF.
+  </p>
+  <div class="d-flex gap-2 flex-wrap justify-content-center">
+    {% if user.is_authenticated %}
+      <a class="btn btn-light btn-lg" href="{% url 'upload' %}">Create a quiz</a>
+      <a class="btn btn-outline-light btn-lg" href="{% url 'dashboard' %}">My quizzes</a>
+    {% else %}
+      <a class="btn btn-light btn-lg" href="{% url 'signup' %}">Get started free</a>
+      <a class="btn btn-outline-light btn-lg" href="{% url 'login' %}">Log in</a>
+    {% endif %}
+  </div>
+</section>
+
+<section class="mb-4" id="faq">
   <div class="text-center mb-4">
-    <p class="qc-eyebrow text-primary mb-2">Questions</p>
+    <p class="qc-eyebrow text-primary mb-2">
+      <i class="bi bi-chat-left-text" aria-hidden="true"></i> Questions
+    </p>
     <h2 class="qc-section-title">The things people ask first</h2>
   </div>
 
   <div class="row justify-content-center">
     <div class="col-lg-9">
-      <div class="accordion accordion-flush qc-faq" id="faq">
+      <div class="accordion accordion-flush qc-faq" id="faq-list">
         {% for question, answer in faq %}
           <div class="accordion-item">
             <h3 class="accordion-header" id="faq-heading-{{ forloop.counter0 }}">
@@ -116,7 +143,7 @@
             <div id="faq-body-{{ forloop.counter0 }}"
                  class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
                  aria-labelledby="faq-heading-{{ forloop.counter0 }}"
-                 data-bs-parent="#faq">
+                 data-bs-parent="#faq-list">
               <div class="accordion-body small text-body-secondary">{{ answer }}</div>
             </div>
           </div>

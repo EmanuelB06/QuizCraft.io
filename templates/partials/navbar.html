@@ -2,13 +2,18 @@
 {% comment %}
 Site chrome: brand, primary nav, account menu. Included by base.html
 so the shell template stays a shell. `request.resolver_match` is used
-to mark the current section active.
+to mark the current section active and to set aria-current="page".
+
+The marketing links (Features / How it works / FAQ) point at section
+ids on the landing page, so they work as in-page scrolls from there
+and as cross-page deep links from anywhere else.
 {% endcomment %}
+{% with current=request.resolver_match.url_name %}
 <nav class="navbar navbar-expand-lg sticky-top site-nav">
   <div class="container">
     <a class="navbar-brand site-brand" href="{% url 'landing' %}">
       <img class="site-brand-logo" src="{% static 'img/logo-nav.png' %}" alt="QuizCraft logo">
-      QuizCraft
+      <span class="site-brand-name">QuizCraft</span>
     </a>
 
     <div class="d-flex align-items-center gap-2 order-lg-3">
@@ -18,7 +23,7 @@ to mark the current section active.
                   data-bs-toggle="dropdown" aria-expanded="false"
                   aria-label="Account menu">
             <span class="site-avatar">{{ user.username|first|upper }}</span>
-            <span class="d-none d-lg-inline small fw-semibold text-body">{{ user.username }}</span>
+            <span class="d-none d-lg-inline small fw-semibold site-account-name">{{ user.username }}</span>
           </button>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountMenu">
             <li>
@@ -28,10 +33,34 @@ to mark the current section active.
             </li>
             <li><hr class="dropdown-divider"></li>
             <li>
+              <a class="dropdown-item {% if current == 'dashboard' %}active{% endif %}"
+                 href="{% url 'dashboard' %}">
+                <i class="bi bi-journal-text" aria-hidden="true"></i>My quizzes
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item {% if current == 'upload' %}active{% endif %}"
+                 href="{% url 'upload' %}">
+                <i class="bi bi-file-earmark-plus" aria-hidden="true"></i>New quiz
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item" href="{% url 'landing' %}#how-it-works">
+                <i class="bi bi-diagram-3" aria-hidden="true"></i>How it works
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{% url 'landing' %}#faq">
+                <i class="bi bi-question-circle" aria-hidden="true"></i>Help &amp; FAQ
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
               <form method="post" action="{% url 'logout' %}" class="m-0">
                 {% csrf_token %}
                 <button class="dropdown-item" type="submit">
-                  <i class="bi bi-box-arrow-right me-2" aria-hidden="true"></i>Log out
+                  <i class="bi bi-box-arrow-right" aria-hidden="true"></i>Log out
                 </button>
               </form>
             </li>
@@ -50,25 +79,53 @@ to mark the current section active.
     </div>
 
     <div class="collapse navbar-collapse order-lg-2" id="siteNav">
-      {% if user.is_authenticated %}
-        <ul class="navbar-nav me-lg-auto gap-lg-1 py-2 py-lg-0 px-2 px-lg-0">
+      <ul class="navbar-nav me-lg-auto gap-lg-1 py-2 py-lg-0 px-2 px-lg-0">
+        {% if user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link nav-link-pill {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
-               href="{% url 'dashboard' %}">My quizzes</a>
+            <a class="nav-link nav-link-pill{% if current == 'dashboard' %} active{% endif %}"
+               href="{% url 'dashboard' %}"
+               {% if current == 'dashboard' %}aria-current="page"{% endif %}>
+              <i class="bi bi-journal-text" aria-hidden="true"></i>My quizzes
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link nav-link-pill {% if request.resolver_match.url_name == 'upload' %}active{% endif %}"
-               href="{% url 'upload' %}">New quiz</a>
+            <a class="nav-link nav-link-pill{% if current == 'upload' %} active{% endif %}"
+               href="{% url 'upload' %}"
+               {% if current == 'upload' %}aria-current="page"{% endif %}>
+              <i class="bi bi-file-earmark-plus" aria-hidden="true"></i>New quiz
+            </a>
           </li>
-        </ul>
-      {% else %}
-        <ul class="navbar-nav me-lg-auto gap-lg-1 py-2 py-lg-0 px-2 px-lg-0">
           <li class="nav-item">
-            <a class="nav-link nav-link-pill {% if request.resolver_match.url_name == 'landing' %}active{% endif %}"
-               href="{% url 'landing' %}">Home</a>
+            <a class="nav-link nav-link-pill" href="{% url 'landing' %}#faq">
+              <i class="bi bi-question-circle" aria-hidden="true"></i>Help
+            </a>
           </li>
-        </ul>
-      {% endif %}
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link nav-link-pill{% if current == 'landing' %} active{% endif %}"
+               href="{% url 'landing' %}"
+               {% if current == 'landing' %}aria-current="page"{% endif %}>
+              <i class="bi bi-house-door" aria-hidden="true"></i>Home
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link nav-link-pill" href="{% url 'landing' %}#features">
+              <i class="bi bi-stars" aria-hidden="true"></i>Features
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link nav-link-pill" href="{% url 'landing' %}#how-it-works">
+              <i class="bi bi-diagram-3" aria-hidden="true"></i>How it works
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link nav-link-pill" href="{% url 'landing' %}#faq">
+              <i class="bi bi-question-circle" aria-hidden="true"></i>FAQ
+            </a>
+          </li>
+        {% endif %}
+      </ul>
     </div>
   </div>
 </nav>
+{% endwith %}

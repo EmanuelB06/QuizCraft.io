@@ -16,6 +16,10 @@
     transition-duration: 0.01ms !important;
   }
 
+  html {
+    scroll-behavior: auto;
+  }
+
   .qc-upload-zone.qc-upload-drag {
     transform: none;
   }

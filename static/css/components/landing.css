@@ -69,6 +69,41 @@
 .qc-hero > *:nth-child(4) { animation-delay: 0.18s; }
 .qc-hero > *:nth-child(5) { animation-delay: 0.24s; }
 
+/* Decorative shapes: they are real elements (the two pseudo-elements
+   are taken by the glow orbs) but must outrank the hero's child
+   rise animation, which is declared at `.qc-hero > *`. */
+.qc-hero > .qc-hero-deco {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* A slow dashed ring bleeding off the top-left corner. */
+.qc-hero > .qc-hero-ring {
+  top: -5.5rem;
+  left: -5rem;
+  width: 17rem;
+  height: 17rem;
+  border: 1.5px dashed rgba(var(--qc-primary-rgb), 0.28);
+  border-radius: 50%;
+  animation: qc-spin 70s linear infinite;
+}
+
+/* A cyan wash tucked into the bottom-right corner. */
+.qc-hero > .qc-hero-blob {
+  right: -4rem;
+  bottom: -3rem;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 32%, rgba(var(--qc-accent-rgb), 0.32), transparent 70%);
+  animation: qc-float 20s ease-in-out infinite;
+}
+
+@keyframes qc-spin {
+  to { transform: rotate(360deg); }
+}
+
 @keyframes qc-float {
   0%,
   100% { transform: translate3d(0, 0, 0) scale(1); }
@@ -171,6 +206,52 @@
   letter-spacing: -0.02em;
 }
 
+/* --- Section background treatments --------------------------- */
+
+/* A soft "mat" under the walkthrough: the hero's dot grid, faded
+   out at the edges by a radial mask, over a faint white veil so the
+   steps read as one grouped panel without another hard card. */
+.qc-section-dots {
+  position: relative;
+  isolation: isolate;
+  padding: 2.5rem 1.5rem;
+  border-radius: 1.5rem;
+}
+
+.qc-section-dots::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1px solid var(--qc-hairline);
+  border-radius: inherit;
+  background:
+    radial-gradient(var(--qc-hero-dot) 1px, transparent 1.6px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.28));
+  background-size: 26px 26px, auto;
+  -webkit-mask-image: radial-gradient(78% 78% at 50% 50%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(78% 78% at 50% 50%, #000 40%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Opposed corner glows behind the capability cards, so the section
+   sits in the same light as the hero instead of on flat page. */
+.qc-section-wash {
+  position: relative;
+  isolation: isolate;
+}
+
+.qc-section-wash::before {
+  content: "";
+  position: absolute;
+  inset: -1.5rem 0;
+  z-index: -1;
+  background:
+    radial-gradient(32rem 17rem at 88% 0%, rgba(var(--qc-accent-rgb), 0.1), transparent 62%),
+    radial-gradient(30rem 16rem at 4% 100%, rgba(var(--qc-primary-rgb), 0.1), transparent 62%);
+  pointer-events: none;
+}
+
 /* --- "How it works" timeline -------------------------------- */
 
 /* The rail is drawn once and each badge sits on top of it. It
@@ -267,6 +348,21 @@
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
+/* Two alternate tints cycled across the capability grid by
+   {% cycle %} in landing.html, so six identical cards still get a
+   little rhythm. Both stay on the brand ramp. */
+.qc-icon-tile.qc-tile-cyan {
+  background: rgba(var(--qc-accent-rgb), 0.12);
+  color: var(--qc-accent);
+  box-shadow: inset 0 0 0 1px rgba(var(--qc-accent-rgb), 0.16);
+}
+
+.qc-icon-tile.qc-tile-deep {
+  background: var(--qc-primary-emphasis);
+  color: var(--qc-primary-focus);
+  box-shadow: inset 0 0 0 1px rgba(var(--qc-primary-dark-rgb), 0.3);
+}
+
 .qc-cap-card {
   position: relative;
   overflow: hidden;
@@ -311,6 +407,64 @@
   color: var(--qc-primary-emphasis);
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+/* --- Closing CTA band ---------------------------------------- */
+
+/* The one saturated surface on the page: a brand gradient with
+   concentric rings and a dot mesh bleeding off opposite corners. */
+.qc-cta-band {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 1.6rem;
+  background: linear-gradient(115deg, var(--qc-primary-dark) 0%, var(--qc-primary) 48%, var(--qc-accent) 100%);
+  color: #fff;
+  box-shadow: var(--qc-shadow-lg);
+}
+
+.qc-cta-band::before,
+.qc-cta-band::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Concentric rings via layered box-shadows on one circle. */
+.qc-cta-band::before {
+  top: -11rem;
+  left: -6rem;
+  width: 20rem;
+  height: 20rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 3.5rem rgba(255, 255, 255, 0.05),
+    0 0 0 7rem rgba(255, 255, 255, 0.03);
+}
+
+.qc-cta-band::after {
+  right: -5rem;
+  bottom: -8rem;
+  width: 17rem;
+  height: 17rem;
+  border: 0;
+  background: radial-gradient(rgba(255, 255, 255, 0.16) 1.2px, transparent 1.8px);
+  background-size: 18px 18px;
+}
+
+.qc-cta-band .qc-section-title {
+  color: #fff;
+}
+
+.qc-cta-eyebrow {
+  color: var(--qc-primary-focus);
+}
+
+.qc-cta-lead {
+  max-width: 38rem;
+  margin-inline: auto;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* --- FAQ ---------------------------------------------------- */

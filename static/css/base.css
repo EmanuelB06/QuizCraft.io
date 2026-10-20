@@ -101,6 +101,14 @@
 
 /* --- Document ------------------------------------------------- */
 
+/* The navbar is sticky, so in-page anchors (the landing-page
+   sections the navbar links to) must clear its height or the
+   heading lands underneath it. */
+html {
+  scroll-padding-top: 5.5rem;
+  scroll-behavior: smooth;
+}
+
 ::selection {
   background: var(--qc-primary-focus);
   color: var(--qc-ink);
